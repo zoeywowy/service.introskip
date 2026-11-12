@@ -6,6 +6,10 @@ import time
 import unittest
 import threading
 import tempfile
+import gzip
+import hashlib
+import io
+import json
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
@@ -13,7 +17,7 @@ BASE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BASE))
 settings_values = {
     'general.use_intro': True, 'general.use_recap': True,
-    'general.use_outro': True, 'general.use_movie_credits': True,
+    'general.use_outro': True, 'general.use_movie_credits': True, 'general.use_preview': False,
     'customize.theme': 'Dark', 'customize.size': '1',
     'customize.position': '0', 'customize.style': '0',
     'customize.contents': '0', 'customize.button_color': '0',
@@ -89,7 +93,8 @@ xbmcaddon=types.ModuleType('xbmcaddon');xbmcaddon.Addon=Addon
 for k,mod in [('xbmc',xbmc),('xbmcgui',xbmcgui),('xbmcvfs',xbmcvfs),('xbmcaddon',xbmcaddon)]:
     sys.modules[k]=mod
 
-from resources.lib import tools,button_assets,color,cinemeta
+from resources.lib import tools,button_assets,color,cinemeta,theintrodb
+from resources.lib.introdb_open_data import IntroDBOpenDataAdapter
 from resources.lib.player import Player
 from resources.lib.skip_dialog import IntroSkipDialog
 
@@ -102,7 +107,7 @@ class PackageTests(unittest.TestCase):
                                 'general.use_outro':True,'general.use_movie_credits':True})
     def test_manifest_version_and_dependencies(self):
         root=ET.parse(BASE/'addon.xml').getroot()
-        self.assertEqual(root.attrib['version'],'0.0.24')
+        self.assertEqual(root.attrib['version'],'0.0.25')
         deps=[item.attrib['addon'] for item in root.findall('requires/import')]
         self.assertEqual(deps,['xbmc.python','script.module.requests'])
     def test_settings_no_advanced_or_diagnostics(self):
@@ -114,6 +119,8 @@ class PackageTests(unittest.TestCase):
                     'api.omdb_api_key','general.use_introdb','general.use_chapters'):
             self.assertNotIn(old,ids)
         self.assertIn('general.show_notifications',ids)
+        self.assertIn('general.use_preview',ids)
+        self.assertIn('skip.preview_mode',ids)
         self.assertIn('customize.button_color',ids)
         self.assertIn('customize.button_color_light',ids)
     def test_removed_modules_not_in_package(self):
@@ -165,6 +172,7 @@ class PackageTests(unittest.TestCase):
         code=(BASE/'resources/lib/introdb.py').read_text()
         self.assertNotIn('sqlite',code)
         self.assertNotIn('cache_path',code)
+        self.assertIn('sqlite3', (BASE/'resources/lib/introdb_open_data.py').read_text())
 
 class CinemetaTests(unittest.TestCase):
     def setUp(self):
@@ -254,8 +262,15 @@ class PlaybackTests(unittest.TestCase):
         settings_values.update({'general.use_intro':True,'general.use_recap':True,
                                 'general.use_outro':True,'general.use_movie_credits':True})
         self.old_lookup=cinemeta.lookup_imdb
+        self.old_theintrodb=self.p.identifier.theintrodb_adapter.get_media_data
+        self.old_bulk=self.p.identifier.introdb_open_data.get_episode_data
         cinemeta.lookup_imdb=lambda *args,**kwargs:'tt7631058'
-    def tearDown(self):cinemeta.lookup_imdb=self.old_lookup
+        self.p.identifier.theintrodb_adapter.get_media_data=lambda *args,**kwargs:None
+        self.p.identifier.introdb_open_data.get_episode_data=lambda *args,**kwargs:None
+    def tearDown(self):
+        cinemeta.lookup_imdb=self.old_lookup
+        self.p.identifier.theintrodb_adapter.get_media_data=self.old_theintrodb
+        self.p.identifier.introdb_open_data.get_episode_data=self.old_bulk
     def test_introdb_source_weaker_than_named_chapter(self):
         self.p._remember_segment('intro',(74,147),{'source':'chapter_explicit'})
         self.p._remember_segment('intro',(76,167),{'source':'introdb'})
@@ -319,5 +334,117 @@ class PlaybackTests(unittest.TestCase):
             if self.p.intro:break
             time.sleep(.005)
         self.assertIsNotNone(self.p.intro)
+
+if __name__=='__main__':unittest.main(verbosity=2)
+
+
+class MultiSourceTests(unittest.TestCase):
+    def test_theintrodb_preserves_multiple_ranges_and_null_boundaries(self):
+        data = {
+            'intro': [
+                {'start_ms': None, 'end_ms': 60000},
+                {'start_ms': 70000, 'end_ms': 90000},
+            ],
+            'credits': [
+                {'start_ms': 3000000, 'end_ms': 3300000},
+                {'start_ms': 3400000, 'end_ms': None},
+            ],
+        }
+        intro = theintrodb.TheIntroDBAdapter.get_ranges_from_data(data, 'intro', 3600)
+        credits = theintrodb.TheIntroDBAdapter.get_ranges_from_data(data, 'credits', 3600)
+        self.assertEqual(intro, [(0.0, 60.0), (70.0, 90.0)])
+        self.assertEqual(credits, [(3000.0, 3300.0), (3400.0, 3600.0)])
+
+    def test_theintrodb_movie_lookup_uses_imdb_duration_and_cache(self):
+        with tempfile.TemporaryDirectory() as folder:
+            adapter = theintrodb.TheIntroDBAdapter(profile_path=folder)
+            calls = []
+            class Response:
+                def raise_for_status(self): pass
+                def json(self):
+                    return {'type':'movie','credits':[{'start_ms':3000000,'end_ms':None}]}
+            old = theintrodb.requests.get
+            def fake_get(url, params=None, timeout=None):
+                calls.append((url, params, timeout))
+                return Response()
+            theintrodb.requests.get = fake_get
+            try:
+                first = adapter.get_media_data('tt1375666', is_movie=True, duration_ms=7200000)
+                second = adapter.get_media_data('tt1375666', is_movie=True, duration_ms=7200000)
+            finally:
+                theintrodb.requests.get = old
+            self.assertEqual(first, second)
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(calls[0][1]['imdb_id'], 'tt1375666')
+            self.assertEqual(calls[0][1]['duration_ms'], 7200000)
+            self.assertEqual(calls[0][1]['details'], 'true')
+
+    def test_open_data_download_builds_local_index_and_skips_unchanged_snapshot(self):
+        segments_csv = (
+            'imdb_id,is_movie,season,episode,segment,start_ms,end_ms,confidence,submission_count,updated_at\\n'
+            'tt7631058,f,1,3,intro,76000,167000,0.92,14,2026-11-12T00:00:00Z\\n'
+            'tt7631058,f,1,3,recap,5000,74000,0.85,8,2026-11-12T00:00:00Z\\n'
+            'tt1375666,t,0,0,outro,3000000,3300000,0.9,11,2026-11-12T00:00:00Z\\n'
+        ).encode('utf-8')
+        segmentless_csv = (
+            'imdb_id,is_movie,season,episode,segment,updated_at\\n'
+            'tt7631058,f,1,4,intro,2026-11-12T00:00:00Z\\n'
+        ).encode('utf-8')
+        segments_gz = gzip.compress(segments_csv)
+        segmentless_gz = gzip.compress(segmentless_csv)
+        manifest = {
+            'generated_at':'2026-11-12T00:00:00Z',
+            'license':'ODbL-1.0',
+            'files':{
+                'segments.csv.gz':{'size':len(segments_gz),'sha256':hashlib.sha256(segments_gz).hexdigest()},
+                'segmentless.csv.gz':{'size':len(segmentless_gz),'sha256':hashlib.sha256(segmentless_gz).hexdigest()},
+            },
+        }
+        manifest_bytes = json.dumps(manifest).encode('utf-8')
+        responses = {
+            'https://data.introdb.app/latest/manifest.json': manifest_bytes,
+            'https://data.introdb.app/latest/segments.csv.gz': segments_gz,
+            'https://data.introdb.app/latest/segmentless.csv.gz': segmentless_gz,
+        }
+        calls = []
+        class Response:
+            def __init__(self, content): self.content=content
+            def raise_for_status(self): pass
+        old = __import__('resources.lib.introdb_open_data', fromlist=['requests']).requests.get
+        module = __import__('resources.lib.introdb_open_data', fromlist=['requests'])
+        def fake_get(url, timeout=None):
+            calls.append(url)
+            return Response(responses[url])
+        module.requests.get = fake_get
+        try:
+            with tempfile.TemporaryDirectory() as folder:
+                adapter = IntroDBOpenDataAdapter(profile_path=folder)
+                self.assertTrue(adapter.sync_if_needed())
+                episode = adapter.get_episode_data('tt7631058', 1, 3)
+                self.assertEqual(episode['intro']['start_ms'], 76000)
+                self.assertEqual(episode['recap']['end_ms'], 74000)
+                absent = adapter.get_episode_data('tt7631058', 1, 4)
+                self.assertTrue(absent['no_intro'])
+                self.assertFalse(adapter.sync_if_needed())
+        finally:
+            module.requests.get = old
+        self.assertEqual(calls.count('https://data.introdb.app/latest/manifest.json'), 2)
+        self.assertEqual(calls.count('https://data.introdb.app/latest/segments.csv.gz'), 1)
+        self.assertEqual(calls.count('https://data.introdb.app/latest/segmentless.csv.gz'), 1)
+
+    def test_preview_provider_maps_to_preview_segment(self):
+        settings_values['general.use_preview'] = True
+        player = Player()
+        player.identifier.theintrodb_adapter.get_ranges_from_data = (
+            lambda data, segment, duration: [(100.0, 130.0)] if segment == 'preview' else []
+        )
+        player.identifier.theintrodb_adapter.evidence_for = lambda *args: {
+            'source':'theintrodb','confidence':0.9,'submissions':5
+        }
+        found = player._apply_theintrodb_data('episode', {'preview':[{}]}, 300000, 300)
+        self.assertIn('preview', found)
+        self.assertEqual(player.preview, (100.0, 130.0))
+
+
 
 if __name__=='__main__':unittest.main(verbosity=2)
