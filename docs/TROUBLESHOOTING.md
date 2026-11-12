@@ -2,22 +2,27 @@
 
 ## Repository won't connect
 
-If Kodi says **“Could not connect to repository”**, that refers to downloading or reading the repository list. It does not, by itself, prove that the IntroSkip service is broken.
+If Kodi says **“Could not connect to repository,”** it is failing to read the repository feed. That does not, by itself, mean the IntroSkip service is broken.
 
-The previous repository installer (1.0.2) used a GitHub Pages index and a nonstandard plain-text checksum URL. Replace it with **IntroSkip Repository 1.0.3**, which now follows the standard Kodi/A4K repository layout.
+The repository installer now lives in a separate project and follows the standard Kodi/A4K layout.
 
-1. Download [repository.introskip-1.0.3.zip](https://zoeywowy.github.io/service.introskip/repository.introskip-1.0.3.zip).
-2. In Kodi, choose **Add-ons → Install from zip file** and select that ZIP. Install it over the existing repository add-on. If Kodi will not replace it, uninstall only **IntroSkip Repository** (ID `repository.introskip`) and then install 1.0.3. Do not uninstall **IntroSkip** (ID `service.introskip`) or clear its settings.
-3. Confirm these public endpoints open in a browser:
-   - [Repository index](https://raw.githubusercontent.com/zoeywowy/service.introskip/main/repository/zips/addons.xml)
-   - [MD5 checksum](https://raw.githubusercontent.com/zoeywowy/service.introskip/main/repository/zips/addons.xml.md5)
-   - [Repository package folder](https://github.com/zoeywowy/service.introskip/tree/main/repository/zips/repository.introskip)
-   - [Service package folder](https://github.com/zoeywowy/service.introskip/tree/main/repository/zips/service.introskip)
-4. The MD5 file should contain exactly 32 hexadecimal characters. Its value must match the MD5 of the downloaded `addons.xml` file.
-5. Correct the typo seen in the earlier Kodi log (`services.introskip`, extra `s`, returned HTTP 404). The bootstrap page is `https://zoeywowy.github.io/service.introskip/`; the repository's actual index and package URLs are raw GitHub URLs.
-6. Restart Kodi, then open **Add-ons → Install from repository → IntroSkip Repository** again.
+1. In Kodi, open **Settings → File manager → Add source**.
+2. Enter `https://zoeywowy.github.io/repository.introskip/` and name the source **IntroSkip Repository**.
+3. Open **Add-ons → Install from zip file → IntroSkip Repository** and install `repository.introskip-1.0.0.zip`.
+4. Open **Install from repository → IntroSkip Repository → Services → IntroSkip**.
 
-If Kodi still cannot connect, capture a fresh `kodi.log` immediately after reproducing the error. Look for `repository.introskip`, `addons.xml`, `CCurlFile`, `GetDirectory`, `ERROR`, or `WARNING`. The fresh log will show whether Kodi is still using an old URL or failing on the new raw GitHub endpoint.
+Check that these public files open in a browser:
+
+- [Repository index](https://raw.githubusercontent.com/zoeywowy/repository.introskip/main/repo/zips/addons.xml)
+- [Matching MD5 checksum](https://raw.githubusercontent.com/zoeywowy/repository.introskip/main/repo/zips/addons.xml.md5)
+- [Repository installer source](https://github.com/zoeywowy/repository.introskip/tree/main/repo/repository.introskip)
+- [Generated service package](https://github.com/zoeywowy/repository.introskip/tree/main/repo/zips/service.introskip)
+
+The repository manifest uses `info compressed="false"`, the matching `addons.xml.md5`, and `datadir zip="true"`. Do not use the old `https://zoeywowy.github.io/service.introskip/` address.
+
+If an older repository add-on is installed, uninstall only **IntroSkip Repository** (ID `repository.introskip`) before installing the new one. Do not uninstall **IntroSkip** (ID `service.introskip`) or clear its settings.
+
+If Kodi still cannot connect, capture a fresh `kodi.log` immediately after reproducing the error. Look for `repository.introskip`, `addons.xml`, `CCurlFile`, `GetDirectory`, `ERROR`, or `WARNING`. The fresh log will show whether Kodi is using an old URL or failing on the new raw GitHub endpoint.
 
 ## IntroSkip is installed, but no skip button appears
 
