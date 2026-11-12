@@ -5,12 +5,14 @@
         <setting id="general.use_intro" label="32069" type="bool" default="true" />
         <setting id="general.use_recap" label="32025" type="bool" default="false" />
         <setting id="general.use_outro" label="32016" type="bool" default="false" />
+        <setting id="general.use_preview" label="32070" type="bool" default="false" />
         <setting id="general.use_movie_credits" label="32026" type="bool" default="false" />
         <setting id="general.show_notifications" label="32008" type="bool" default="true" />
     </category>
     <category label="32027">
         <setting id="skip.intro_mode" label="32028" type="enum" lvalues="32029|32030" default="0" />
         <setting id="skip.recap_mode" label="32031" type="enum" lvalues="32029|32030" default="0" />
+        <setting id="skip.preview_mode" label="32071" type="enum" lvalues="32029|32030" default="0" />
         <setting id="skip.outro_mode" label="32032" type="enum" lvalues="32029|32030" default="0" />
         <setting id="skip.movie_outro_mode" label="32033" type="enum" lvalues="32029|32030" default="0" />
     </category>
