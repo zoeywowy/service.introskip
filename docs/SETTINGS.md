@@ -1,21 +1,36 @@
-# Settings guide (v0.0.23)
+# IntroSkip settings
+
+Open **Kodi → Add-ons → My add-ons → Services → IntroSkip → Configure**.
 
 ## Detection
 
-- Enable introduction detection (enabled initially).
-- Enable previously-on recap detection.
-- Enable TV outro/credits detection.
-- Enable movie-credits detection.
-- Show or hide detection notifications.
+Choose which segments IntroSkip should look for:
+
+| Option | Default |
+| --- | --- |
+| Intros | On |
+| Recaps | Off |
+| TV outros / credits | Off |
+| Movie credits | Off |
+| Detection notifications | On |
+
+Kodi 22 chapter detection and IntroDB remain available automatically. There is no switch to select one detection source over the other.
 
 ## Skip behavior
 
-Choose **Ask** (the default) or **Auto** separately for intro, recap, TV outro, and movie credits. Auto is restricted by safety policy and evidence source; a source-local chapter alone will not automatically skip content.
+Choose **Ask** or **Auto** separately for intros, recaps, TV credits and movie credits.
+
+- **Ask** (default): shows a button so you decide whether to skip.
+- **Auto**: skips only when the segment passes the safety checks. A named chapter alone is **not** enough for an automatic skip. Film credits are handled conservatively because of possible post-credit scenes.
+
+If you are testing a new video source, start with **Ask**.
 
 ## Button appearance
 
-Choose **Light** or **Dark** theme with its own independent palette. Select position, size, pill/soft/flat style, and contents. Use **Preview button** to check visibility with your skin. **Reset layout** restores the default placement.
+Choose a **Light** or **Dark** theme; each has its own remembered button color. Adjust position, size, style (Pill, Soft or Flat) and content. **Preview button** lets you check the appearance, and **Reset layout** restores the default placement.
 
-## Removed settings
+## What was removed
 
-The Advanced tab, chapter-inspector action, playback-diagnostics action, OMDb API key, separate detection source switches, subtitle learning, and manual timestamps are not part of 0.0.23.
+Version 0.0.23 no longer includes an Advanced tab, OMDb API key, chapter-inspector button, playback diagnostics action, subtitle detection, a manual timestamp editor, or a persistent IMDb/timestamp cache. Old unused settings can remain in Kodi's profile but are not read by this build.
+
+If you need help with a missing button or bad timestamps, see [Troubleshooting](TROUBLESHOOTING.md).
