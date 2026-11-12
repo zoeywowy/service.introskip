@@ -1,0 +1,79 @@
+name: Validate and publish IntroSkip 0.0.23
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/release-023.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Validate Python and Kodi XML
+        run: |
+          python - <<'PY'
+          import pathlib
+          import py_compile
+          import xml.etree.ElementTree as ET
+          for p in pathlib.Path('.').rglob('*.py'):
+              if '.git' not in p.parts:
+                  py_compile.compile(str(p), doraise=True)
+          for p in pathlib.Path('.').rglob('*.xml'):
+              ET.parse(str(p))
+          print('Python and XML validation passed')
+          PY
+
+      - name: Test playback and Cinemeta integration logic
+        run: python -m unittest discover -s tests -p 'test_023_integration.py' -v
+
+      - name: Test chapter detection
+        run: python -m unittest discover -s tests -p 'test_023_chapters.py' -v
+
+      - name: Build the Kodi-installable ZIP
+        run: |
+          python build_zip.py
+          python - <<'PY'
+          import zipfile
+          path = 'dist/service.introskip-0.0.23.zip'
+          with zipfile.ZipFile(path) as z:
+              assert z.testzip() is None
+              assert 'service.introskip/addon.xml' in z.namelist()
+              assert 'service.introskip/service.py' in z.namelist()
+              assert 'service.introskip/icon.png' in z.namelist()
+          print('Installable ZIP structure verified')
+          PY
+
+      - name: Publish GitHub pre-release with installable ZIP
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > /tmp/introskip-release.md <<'EOF'
+          IntroSkip 0.0.23 — Kodi 22 pre-release candidate.
+
+          * Automatic IMDb ID resolution for TV series and movies through the public, keyless Cinemeta metadata API.
+          * IntroDB skip timestamps and independent Kodi 22 native chapter detection.
+          * Separate Light/Dark button color choices.
+          * Removes OMDb, TVDB dependencies, Advanced diagnostics and persistent timestamp caching.
+
+          Install: download **service.introskip-0.0.23.zip** from the Assets section (not GitHub's generated Source code ZIP), then choose Add-ons → Install from zip file in Kodi 22 and restart.
+
+          This is a pre-release pending device testing; please report problems under GitHub Issues.
+          EOF
+          if gh release view v0.0.23 >/dev/null 2>&1; then
+            gh release upload v0.0.23 dist/service.introskip-0.0.23.zip --clobber
+          else
+            gh release create v0.0.23 dist/service.introskip-0.0.23.zip --title "IntroSkip v0.0.23 — Kodi 22" --notes-file /tmp/introskip-release.md --prerelease --target main
+          fi
