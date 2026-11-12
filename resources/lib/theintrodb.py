@@ -65,7 +65,7 @@ class TheIntroDBAdapter:
         cached = self._read_cache(cache_path)
         if cached is not None:
             tools.log("TheIntroDB cache hit for {}".format(key), "debug")
-            return cached
+            return None if cached.get("_no_data") else cached
 
         params = {"imdb_id": imdb_id, "details": "true"}
         if not is_movie:
@@ -74,6 +74,14 @@ class TheIntroDBAdapter:
             params["duration_ms"] = duration_ms
         try:
             response = requests.get(self.BASE_URL, params=params, timeout=self.timeout)
+            if response.status_code == 404:
+                os.makedirs(self.cache_dir, exist_ok=True)
+                temp_path = cache_path + ".tmp"
+                with open(temp_path, "w", encoding="utf-8") as handle:
+                    json.dump({"fetched_at": time.time(), "payload": {"_no_data": True}}, handle)
+                os.replace(temp_path, cache_path)
+                tools.log("TheIntroDB has no published data for {}".format(key), "debug")
+                return None
             response.raise_for_status()
             data = response.json()
             if not isinstance(data, dict):
