@@ -43,10 +43,10 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Build repository ZIP, IntroSkip ZIP and Kodi index
+      - name: Build Kodi-standard repository tree and bootstrap installer
         run: python tools/build_kodi_repository.py
 
-      - name: Verify Kodi index and installers
+      - name: Verify Kodi repository index, MD5 and package layout
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -54,58 +54,79 @@ jobs:
           import xml.etree.ElementTree as ET
           from zipfile import ZipFile
 
-          docs = Path("docs")
-          data = (docs / "addons.xml").read_bytes()
+          root = Path("repository/zips")
+          raw = "https://raw.githubusercontent.com/zoeywowy/service.introskip/main/repository/zips/"
+          data = (root / "addons.xml").read_bytes()
           index = ET.fromstring(data)
           assert index.tag == "addons"
           ids = {addon.get("id") for addon in index}
           assert ids == {"service.introskip", "repository.introskip"}, ids
           digest = hashlib.md5(data).hexdigest()
-          assert (docs / "addons.xml.md5").read_text() == digest
-          assert (docs / "addons-checksum.txt").read_text().strip() == digest
+          assert (root / "addons.xml.md5").read_text() == digest
+
           repository = next(a for a in index if a.get("id") == "repository.introskip")
-          checksum_url = repository.findtext("./extension[@point='xbmc.addon.repository']/dir/checksum")
-          assert checksum_url == "https://zoeywowy.github.io/service.introskip/addons-checksum.txt"
-          for name, root_file in [
-              ("repository.introskip-1.0.2.zip", "repository.introskip/addon.xml"),
-              ("service.introskip/service.introskip-0.0.24.zip", "service.introskip/addon.xml"),
-          ]:
-              with ZipFile(docs / name) as z:
-                  assert z.testzip() is None
-                  assert root_file in z.namelist()
-          assert (docs / "index.html").is_file()
+          directory = repository.find("./extension[@point='xbmc.addon.repository']/dir")
+          assert directory is not None
+          assert directory.findtext("info") == raw + "addons.xml"
+          assert directory.find("info").get("compressed") == "false"
+          assert directory.findtext("checksum") == raw + "addons.xml.md5"
+          assert directory.findtext("datadir") == raw
+          assert directory.find("datadir").get("zip") == "true"
+          assert directory.find("hashes") is None
+
           for addon_id in ("repository.introskip", "service.introskip"):
-              assert (docs / addon_id / "icon.png").is_file()
-          service = next(a for a in index if a.get("id") == "service.introskip")
-          deps = {d.get("addon"): d.get("version") for d in service.findall("./requires/import")}
-          assert deps["xbmc.python"] == "3.1.0", deps
-          assert deps.get("script.module.requests"), deps
-          print("Kodi repository index and both installer ZIPs verified")
+              addon_dir = root / addon_id
+              manifest = ET.parse(addon_dir / "addon.xml").getroot()
+              assert manifest.get("id") == addon_id
+              version = manifest.get("version")
+              archive = addon_dir / f"{addon_id}-{version}.zip"
+              assert archive.is_file()
+              assert (addon_dir / "icon.png").is_file()
+              with ZipFile(archive) as package:
+                  assert package.testzip() is None
+                  assert f"{addon_id}/addon.xml" in package.namelist()
+                  packaged = ET.fromstring(package.read(f"{addon_id}/addon.xml"))
+                  assert packaged.get("id") == addon_id
+                  assert packaged.get("version") == version
+
+          bootstrap = Path("docs/repository.introskip-1.0.3.zip")
+          assert bootstrap.is_file()
+          with ZipFile(bootstrap) as package:
+              assert package.testzip() is None
+              assert "repository.introskip/addon.xml" in package.namelist()
+          assert (Path("docs") / "index.html").is_file()
+          print("Kodi-standard index, MD5, datadir and both ZIP packages verified")
           PY
 
       - name: Commit generated repository files to main
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f docs/.nojekyll docs/index.html docs/addons.xml docs/addons.xml.md5 docs/addons-checksum.txt
-          git add -f docs/repository.introskip-1.0.2.zip docs/repository.introskip/ docs/service.introskip/
+          git add -f repository/zips/
+          git add -f docs/.nojekyll docs/index.html docs/repository.introskip-1.0.3.zip
+          git add -u docs
           if ! git diff --cached --quiet; then
-            git commit -m "build: publish Kodi repository index and installer ZIPs"
+            git commit -m "build: publish Kodi-standard repository tree"
             git pull --rebase origin main
             git push origin HEAD:main
           fi
 
-      - name: Upload GitHub Pages artifact
+      - name: Upload GitHub Pages bootstrap page
         uses: actions/upload-pages-artifact@v4
         with:
           path: ./docs
 
-      - name: Deploy Kodi repository website
+      - name: Deploy GitHub Pages bootstrap page
         id: deployment
         uses: actions/deploy-pages@v4
 
-      - name: Verify published checksum URL
+      - name: Verify public raw GitHub repository endpoints
         run: |
-          curl -fLsS --retry 8 --retry-all-errors --retry-delay 3 "https://zoeywowy.github.io/service.introskip/addons-checksum.txt" -o /tmp/introskip-checksum.txt
-          test "$(cat /tmp/introskip-checksum.txt)" = "$(cat docs/addons-checksum.txt)"
-          echo "Public Kodi checksum is reachable and matches the current index"
+          curl -fLsS --retry 8 --retry-all-errors --retry-delay 3 \
+            "https://raw.githubusercontent.com/zoeywowy/service.introskip/main/repository/zips/addons.xml" \
+            -o /tmp/introskip-addons.xml
+          curl -fLsS --retry 8 --retry-all-errors --retry-delay 3 \
+            "https://raw.githubusercontent.com/zoeywowy/service.introskip/main/repository/zips/addons.xml.md5" \
+            -o /tmp/introskip-addons.xml.md5
+          test "$(cat /tmp/introskip-addons.xml.md5)" = "$(md5sum /tmp/introskip-addons.xml | cut -d ' ' -f 1)"
+          echo "Public raw GitHub index and MD5 are reachable and match"

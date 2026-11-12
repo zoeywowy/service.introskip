@@ -1,5 +1,17 @@
 # IntroSkip — Release Notes
 
+## Repository 1.0.3 — Standard Kodi repository layout
+**12 November 2026**
+
+- Rebuilt the repository manifest to use the established Kodi/A4K structure.
+- Repository index and matching MD5 checksum now come from raw GitHub URLs.
+- Added `datadir zip="true"` and the standard `addon.id/addon.id-version.zip` package folders.
+- GitHub Pages now serves only the first-install repository ZIP and landing page.
+- The IntroSkip service remains 0.0.24; no playback or detection code changed.
+
+---
+
+
 ## Repository 1.0.2 — Checksum accessibility update
 **12 November 2026**
 

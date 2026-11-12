@@ -1,24 +1,20 @@
 # Install IntroSkip
 
-IntroSkip targets **Kodi 22**. You can install it through its repository (which is intended to provide updates) or install the service directly from a ZIP.
+IntroSkip targets **Kodi 22**. Install the repository first if you want Kodi to receive future updates, or install the service ZIP directly.
 
 ## Method 1: Install through the Kodi repository
 
-1. Open **Kodi → Settings (gear) → File manager → Add source**.
-2. Select **<None>**, enter the source address below, then name it **IntroSkip**.
+1. Download the [IntroSkip Repository 1.0.3 ZIP](https://zoeywowy.github.io/service.introskip/repository.introskip-1.0.3.zip) to the device running Kodi (or make it available on your network).
+2. In Kodi, open **Add-ons → Install from zip file**. If Kodi prompts about unknown sources, enable that option only if you trust this add-on.
+3. Select the downloaded `repository.introskip-1.0.3.zip`.
+4. Go to **Add-ons → Install from repository → IntroSkip Repository → Services → IntroSkip → Install**.
+5. Restart Kodi. To adjust the add-on, open **Add-ons → My add-ons → Services → IntroSkip → Configure**.
 
-   `https://zoeywowy.github.io/service.introskip/`
-
-3. Go to **Add-ons → Install from zip file**. If Kodi prompts about unknown sources, enable that option only if you trust this add-on.
-4. Select **IntroSkip**, then `repository.introskip-1.0.1.zip`.
-5. Go to **Add-ons → Install from repository → IntroSkip Repository → Services → IntroSkip → Install**.
-6. Restart Kodi. To adjust the add-on, open **Add-ons → My add-ons → Services → IntroSkip → Configure**.
-
-The **github.com** project URL is for source code. The **github.io** URL above is the Kodi File Manager source.
+The repository installer is hosted on GitHub Pages for the initial install. After installation, Kodi reads the repository index, MD5 checksum and add-on ZIPs from **raw.githubusercontent.com** using Kodi's standard `addons.xml` / `addons.xml.md5` / `datadir zip="true"` layout.
 
 ## Method 2: Install the service directly
 
-Use this if you do not need repository-based updates or if Kodi displays **“Could not connect to repository.”**
+Use this if you do not need repository-based updates.
 
 1. Download [IntroSkip 0.0.24 ZIP](https://github.com/zoeywowy/service.introskip/releases/download/v0.0.24/service.introskip-0.0.24.zip) from the GitHub release's **Assets**.
 2. Make the file accessible to Kodi on your device.
@@ -27,7 +23,7 @@ Use this if you do not need repository-based updates or if Kodi displays **“Co
 
 Do **not** install GitHub's auto-generated “Source code (zip)” file. It is not packaged for Kodi.
 
-Direct installation does not repair a broken repository; it simply lets you try the add-on without that download path.
+Direct installation does not repair or install the repository; it simply installs the service without repository-based updates.
 
 ## If installation fails
 
@@ -35,7 +31,7 @@ First confirm your Kodi version. If the repository gives an error, open the [rep
 
 ## Update or remove IntroSkip
 
-To update, install a newer package over the existing add-on, or update it through the repository once repository access works. Existing settings are normally kept. Older unused preferences may remain in Kodi's profile, but 0.0.24 does not use them.
+To update, install a newer package over the existing add-on, or update it through the repository once repository access works. Existing settings are normally kept.
 
 To remove it, open **Add-ons → My add-ons → Services → IntroSkip → Uninstall**. Kodi may separately ask whether to erase settings.
 

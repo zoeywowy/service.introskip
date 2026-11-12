@@ -10,16 +10,15 @@ IntroSkip is a small background add-on for TV shows and movies. When it finds a 
 
 **Option 1 — Install from the Kodi repository**
 
-1. In Kodi, go to **Settings → File manager → Add source**.
-2. Enter `https://zoeywowy.github.io/service.introskip/` and name it **IntroSkip**.
-3. Go to **Add-ons → Install from zip file → IntroSkip** and select `repository.introskip-1.0.2.zip`.
-4. Go to **Add-ons → Install from repository → IntroSkip Repository → Services → IntroSkip → Install**.
+1. Download [IntroSkip Repository 1.0.3 ZIP](https://zoeywowy.github.io/service.introskip/repository.introskip-1.0.3.zip).
+2. In Kodi, go to **Add-ons → Install from zip file** and select the downloaded ZIP.
+3. Go to **Add-ons → Install from repository → IntroSkip Repository → Services → IntroSkip → Install**.
 
 **Option 2 — Install directly**
 
 Download [service.introskip-0.0.24.zip](https://github.com/zoeywowy/service.introskip/releases/download/v0.0.24/service.introskip-0.0.24.zip) and install it using **Add-ons → Install from zip file**. Choose the ZIP under **Release assets**, not GitHub's **Source code** archive.
 
-If the repository reports **“Could not connect to repository,”** try repository **1.0.2**, which uses a plain-text checksum URL. The direct ZIP may also install. See the [troubleshooting guide](docs/TROUBLESHOOTING.md#repository-wont-connect). Restart Kodi after installation or upgrade.
+Repository 1.0.3 follows the standard Kodi/A4K layout: a raw GitHub `addons.xml` index, its matching `addons.xml.md5` checksum, and packages under `addon.id/addon.id-version.zip` using `datadir zip="true"`. GitHub Pages hosts only the first-install repository ZIP. If the repository still reports **“Could not connect to repository,”** capture a fresh Kodi log after installing 1.0.3. See the [troubleshooting guide](docs/TROUBLESHOOTING.md#repository-wont-connect). Restart Kodi after installation or upgrade.
 
 [Step-by-step installation](docs/INSTALLATION.md) · [Troubleshooting](docs/TROUBLESHOOTING.md)
 
@@ -73,7 +72,7 @@ python build_zip.py
 python tools/build_kodi_repository.py
 ```
 
-The first two test suites should be run in **separate processes**. Build output for the service goes to `dist/`; the hosted repository files are generated into `docs/`.
+The first two test suites should be run in **separate processes**. Build output for the service goes to `dist/`; Kodi repository files are generated into `repository/zips/`, while `docs/` contains the GitHub Pages bootstrap download page.
 
 [Release history](CHANGELOG.md) · [Publishing guide](docs/PUBLISHING.md) · [Contributing](CONTRIBUTING.md) · [Report a problem](https://github.com/zoeywowy/service.introskip/issues/new)
 

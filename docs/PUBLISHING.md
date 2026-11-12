@@ -1,6 +1,6 @@
 # Publishing IntroSkip
 
-IntroSkip has two download paths: a **service ZIP** on GitHub Releases and a **Kodi repository** hosted on GitHub Pages. Publishing source code alone does not create either installer.
+IntroSkip has two download paths: a **service ZIP** on GitHub Releases and a **Kodi repository**. The repository follows the standard Kodi/A4K structure: its bootstrap ZIP is on GitHub Pages, while the index, checksum and add-on ZIPs are served from raw GitHub.
 
 ## Before a release
 
@@ -13,23 +13,30 @@ IntroSkip has two download paths: a **service ZIP** on GitHub Releases and a **K
    ```
 
 3. Run `python build_zip.py` and `python tools/build_kodi_repository.py`.
-4. Confirm the service ZIP contains `service.introskip/addon.xml` and that `docs/addons.xml` lists the current version. Verify the checksum, repository ZIP and add-on artwork.
+4. Confirm the service ZIP contains `service.introskip/addon.xml` and that `repository/zips/addons.xml` lists the current versions. Verify the adjacent MD5, repository ZIP, service ZIP and artwork.
 
 ## GitHub release
 
-The GitHub workflow **Validate and publish IntroSkip pre-release** tests the build and uploads the Kodi-installable service ZIP under [Releases](https://github.com/zoeywowy/service.introskip/releases). The current workflow is configured for **v0.0.24**. When bumping the version again, update its release number and ZIP references.
+The GitHub workflow **Validate and publish IntroSkip pre-release** tests the build and uploads the Kodi-installable service ZIP under [Releases](https://github.com/zoeywowy/service.introskip/releases). The current workflow is configured for **v0.0.24**. When bumping the service version again, update its release number and ZIP references.
 
 The release file must be the ZIP in the **Assets** section. GitHub's automatic “Source code” downloads are not packaged for Kodi.
 
-## Kodi repository and GitHub Pages
+## Kodi repository
 
-The workflow **Build and deploy Kodi repository to GitHub Pages** builds the package directory, index, checksum, artwork and repository installer in `docs/`, commits generated files back to `main`, then publishes the site.
+The workflow **Build and deploy Kodi repository to GitHub Pages** builds the repository tree under `repository/zips/`, including:
+
+- `addons.xml` and its exact `addons.xml.md5` digest.
+- `repository.introskip/repository.introskip-1.0.3.zip`.
+- `service.introskip/service.introskip-0.0.24.zip`.
+- Each add-on's `addon.xml` and icon beside its ZIP.
+
+The repository add-on manifest points to `raw.githubusercontent.com` with `info compressed="false"`, `checksum`, and `datadir zip="true"`. GitHub Pages only hosts the first-install repository ZIP and landing page.
 
 Configure **Settings → Pages → Build and deployment → Source: GitHub Actions**.
 
-**Kodi File Manager source:** `https://zoeywowy.github.io/service.introskip/`
+**Bootstrap ZIP:** [repository.introskip-1.0.3.zip](https://zoeywowy.github.io/service.introskip/repository.introskip-1.0.3.zip)
 
-See [Kodi repository setup](KODI_REPOSITORY.md) for the URLs and installation steps. A successful workflow proves its packaging checks passed; verify the published URLs and install on a real Kodi device before declaring success.
+See [Kodi repository setup](KODI_REPOSITORY.md) for the exact URLs and installation steps. A successful workflow proves its packaging checks passed; verify the public raw URLs and install on a real Kodi device before declaring success.
 
 ## Shipping a stable release
 
