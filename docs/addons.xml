@@ -1,30 +1,23 @@
 <?xml version='1.0' encoding='utf-8'?>
-<addons><addon id="repository.introskip" name="IntroSkip Repository" version="1.0.0" provider-name="zoeywowy"><requires><import addon="xbmc.addon" version="12.0.0" /></requires><extension point="xbmc.addon.repository"><dir><info compressed="false">https://zoeywowy.github.io/service.introskip/addons.xml</info><checksum>https://zoeywowy.github.io/service.introskip/addons.xml.md5</checksum><datadir>https://zoeywowy.github.io/service.introskip/</datadir><hashes>false</hashes></dir></extension><extension point="xbmc.addon.metadata"><summary lang="en_GB">Install and update IntroSkip for Kodi 22</summary><description lang="en_GB">Unofficial repository containing IntroSkip: TV recap, intro, outro and movie credit skip prompts using Cinemeta, IntroDB and Kodi 22 chapters.</description><platform>all</platform><license>Apache-2.0</license><website>https://github.com/zoeywowy/service.introskip</website><assets><icon>icon.png</icon></assets></extension></addon><addon id="service.introskip" name="IntroSkip" version="0.0.23" provider-name="zoeywowy">
+<addons><addon id="repository.introskip" name="IntroSkip Repository" version="1.0.1" provider-name="zoeywowy"><requires><import addon="xbmc.addon" version="12.0.0" /></requires><extension point="xbmc.addon.repository"><dir><info compressed="false">https://zoeywowy.github.io/service.introskip/addons.xml</info><checksum>https://zoeywowy.github.io/service.introskip/addons.xml.md5</checksum><datadir>https://zoeywowy.github.io/service.introskip/</datadir><hashes>false</hashes></dir></extension><extension point="xbmc.addon.metadata"><summary lang="en_GB">Install and update IntroSkip for Kodi 22</summary><description lang="en_GB">Unofficial repository containing IntroSkip: TV recap, intro, outro and movie credit skip prompts using Cinemeta, IntroDB and Kodi 22 chapters.</description><platform>all</platform><license>Apache-2.0</license><website>https://github.com/zoeywowy/service.introskip</website><assets><icon>icon.png</icon></assets></extension></addon><addon id="service.introskip" name="IntroSkip" version="0.0.24" provider-name="zoeywowy">
     <requires>
-        <import addon="xbmc.python" version="3.1.1" />
-        <import addon="script.module.requests" />
+        <import addon="xbmc.python" version="3.1.0" />
+        <import addon="script.module.requests" version="2.0.0" />
     </requires>
-    
-    
+
     <extension point="xbmc.service" library="service.py" start="startup" />
-    
-    
     <extension point="xbmc.python.script" library="main.py">
         <provides>executable</provides>
     </extension>
-    
+
     <extension point="xbmc.addon.metadata">
-        <summary lang="en_GB">Skip intros, recaps and credits with IntroDB and native Kodi 22 chapters, plus modern customizable PNG prompts.</summary>
-        <description lang="en_GB" />
-        <language />
+        <summary lang="en_GB">Skip intros, recaps and credits with IntroDB and Kodi 22 chapters.</summary>
+        <description lang="en_GB">IntroSkip finds opening sequences, recaps and credits in TV episodes and movies. It uses community timestamps from IntroDB and named Kodi 22 chapters to show customizable skip buttons. Cinemeta identifies titles without API keys. Choose Ask or Auto for each type of segment; automatic skipping only uses qualifying timestamp evidence.</description>
         <platform>all</platform>
         <license>Apache-2.0</license>
-        <forum />
-        <website>https://github.com/zoeywowy</website>
-        <email />
-        <source />
-        <news>0.0.23 replaces OMDb and Kodi library-ID lookups with keyless Cinemeta title searches for movies and TV series. Removes Advanced diagnostics and OMDb configuration; retains Kodi 22 chapters, playback-only IntroDB timestamps, and Light/Dark button color palettes. No TVDB, OMDb, or persistent timestamp cache.</news>
-        <disclaimer />
+        <website>https://github.com/zoeywowy/service.introskip</website>
+        <source>https://github.com/zoeywowy/service.introskip</source>
+        <news>0.0.24 corrects the Kodi 22 Python dependency minimum to 3.1.0, declares a requests minimum, and improves add-on metadata. Detection and button behavior are unchanged from 0.0.23.</news>
         <assets>
             <icon>icon.png</icon>
         </assets>
