@@ -13,16 +13,18 @@ from resources.lib.kodi_native import KodiNativeMonitor
 
 _addon_data = xbmcvfs.translatePath(settings.get_addon_info('profile'))
 
-ORDER = ('recap', 'intro', 'outro', 'movie_outro')
+ORDER = ('recap', 'intro', 'preview', 'outro', 'movie_outro')
 MODE_SETTINGS = {
     'intro': 'skip.intro_mode',
     'recap': 'skip.recap_mode',
+    'preview': 'skip.preview_mode',
     'outro': 'skip.outro_mode',
     'movie_outro': 'skip.movie_outro_mode',
 }
 ENABLE_SETTINGS = {
     'intro': 'general.use_intro',
     'recap': 'general.use_recap',
+    'preview': 'general.use_preview',
     'outro': 'general.use_outro',
     'movie_outro': 'general.use_movie_credits',
 }
@@ -57,10 +59,16 @@ def run():
     monitor = KodiNativeMonitor()
     player = Player()
     tools.create_folder(_addon_data)
+    # First-run data download is asynchronous. Existing local data remains usable
+    # immediately, and the manifest is checked once per Kodi launch.
+    try:
+        player.identifier.introdb_open_data.start_background_sync()
+    except Exception as exc:
+        tools.log('Could not start IntroDB open-data sync: {}'.format(exc), 'warning')
     file_key = None
     generation = player.playback_generation
     handled = set()
-    active_kind = None
+    active_key = None
     chapter_probe_at = None
     chapter_probe_count = 0
     native_probe_count = 0
@@ -74,11 +82,11 @@ def run():
         except Exception:
             is_playing = False
         if not is_playing:
-            if file_key is not None or active_kind:
+            if file_key is not None or active_key:
                 _close(player.get_dialog())
             file_key = None
             handled.clear()
-            active_kind = None
+            active_key = None
             chapter_probe_at = None
             chapter_probe_count = 0
             native_probe_count = 0
@@ -95,7 +103,7 @@ def run():
             file_key = playing_file
             generation = player.playback_generation
             handled.clear()
-            active_kind = None
+            active_key = None
             chapter_probe_at = time.monotonic()
             chapter_probe_count = 0
             native_probe_count = 0
@@ -145,9 +153,20 @@ def run():
 
         segments = player.get_segments()
         dialog = player.get_dialog()
-        if active_kind:
-            current = validate_range(segments.get(active_kind), duration)
-            # Dismissal/skip affects only the current segment, not future ones.
+        if active_key:
+            active_kind, active_start, active_end = active_key
+            current_ranges = segments.get(active_kind, [])
+            current = None
+            for candidate in current_ranges:
+                if not isinstance(candidate, (tuple, list)) or len(candidate) != 2:
+                    continue
+                candidate_key = (
+                    round(float(tools.convert_time_to_seconds(candidate[0])), 3),
+                    round(float(tools.convert_time_to_seconds(candidate[1])), 3),
+                )
+                if candidate_key == (active_start, active_end):
+                    current = validate_range(candidate, duration)
+                    break
             if current:
                 try:
                     old_end = float(dialog.getProperty('skip_time') or 0)
@@ -158,67 +177,74 @@ def run():
                 except (ValueError, TypeError, OverflowError, RuntimeError):
                     pass
             if dialog.isCancelled():
-                handled.add(active_kind)
+                handled.add(active_key)
                 _close(dialog)
-                active_kind = None
+                active_key = None
             elif not current or now >= current[1] or not _enabled(active_kind):
-                handled.add(active_kind)
+                handled.add(active_key)
                 _close(dialog)
-                active_kind = None
+                active_key = None
             elif now < current[0] - 2:
-                # User sought backward; allow the prompt when returning to this range.
+                # User sought backward; allow this same interval when they return.
                 _close(dialog)
-                active_kind = None
+                active_key = None
             else:
                 continue
 
         for kind in ORDER:
-            if kind in handled or not _enabled(kind):
+            if not _enabled(kind):
                 continue
-            bounds = validate_range(segments.get(kind), duration)
-            if not bounds:
-                continue
-            start, end = bounds
-            if now >= end:
-                handled.add(kind)
-                continue
-            if not (start <= now < end):
-                continue
+            ranges = segments.get(kind, [])
+            if isinstance(ranges, (tuple, list)) and len(ranges) == 2 and not isinstance(ranges[0], (tuple, list)):
+                ranges = [ranges]
+            for raw_bounds in ranges:
+                bounds = validate_range(raw_bounds, duration)
+                if not bounds:
+                    continue
+                start, end = bounds
+                segment_key = (kind, round(start, 3), round(end, 3))
+                if segment_key in handled:
+                    continue
+                if now >= end:
+                    handled.add(segment_key)
+                    continue
+                if not (start <= now < end):
+                    continue
 
-            evidence = player.evidence_for(kind)
-            auto_allowed = can_auto_skip(_mode(kind), evidence.get('source'),
-                                         evidence.get('confidence'), evidence.get('submissions'))
-            # IntroDB does not confirm that a film lacks post-credit scenes.
-            # Without an identified post-credit interval, require a manual prompt.
-            if kind == 'movie_outro' and not player.post_credits:
-                auto_allowed = False
-            if auto_allowed:
-                # Source-local variations can invalidate reference timings.
-                # Automatic skipping is off by default and never uses guesses.
+                evidence = player.evidence_for(kind, bounds)
+                auto_allowed = can_auto_skip(_mode(kind), evidence.get('source'),
+                                             evidence.get('confidence'), evidence.get('submissions'))
+                # IntroDB does not confirm that a film lacks post-credit scenes.
+                # Without an identified post-credit interval, require a manual prompt.
+                if kind == 'movie_outro' and not player.post_credits:
+                    auto_allowed = False
+                if auto_allowed:
+                    try:
+                        if end - 1.0 > now:
+                            player.seekTime(max(0.0, end - 1.0))
+                            player.reset_segment(kind, bounds)
+                            handled.add(segment_key)
+                            tools.log('Automatically skipped {}'.format(kind), 'info')
+                            break
+                    except Exception as exc:
+                        tools.log('Automatic seek failed for {}: {}'.format(kind, exc), 'warning')
+                    # Keep the normal prompt available if seeking fails.
+
                 try:
-                    if end - 1.0 > now:
-                        player.seekTime(max(0.0, end - 1.0))
-                        player.reset_segment(kind)
-                        handled.add(kind)
-                        tools.log('Automatically skipped {}'.format(kind), 'info')
-                        break
+                    active_dialog = xbmcgui.getCurrentWindowDialogId()
+                except Exception:
+                    active_dialog = 0
+                if active_dialog and active_dialog >= 13000:
+                    # Do not overlay other modal dialogs or configuration windows.
+                    break
+                try:
+                    dialog.configure(kind, end, start)
+                    dialog.show()
+                    active_key = segment_key
                 except Exception as exc:
-                    tools.log('Automatic seek failed for {}: {}'.format(kind, exc), 'warning')
-                # Keep the normal prompt available if seeking fails.
-
-            try:
-                active_dialog = xbmcgui.getCurrentWindowDialogId()
-            except Exception:
-                active_dialog = 0
-            if active_dialog and active_dialog >= 13000:
-                # Do not overlay other modal dialogs or configuration windows.
+                    tools.log('Could not show {} prompt: {}'.format(kind, exc), 'warning')
                 break
-            try:
-                dialog.configure(kind, end)
-                dialog.show()
-                active_kind = kind
-            except Exception as exc:
-                tools.log('Could not show {} prompt: {}'.format(kind, exc), 'warning')
-            break
+            if active_key:
+                break
 
     _close(player.get_dialog())
