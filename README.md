@@ -70,10 +70,9 @@ The add-on lives at the repository root; its core Python code is under `resource
 python -m unittest discover -s tests -p 'test_023_integration.py' -v
 python -m unittest discover -s tests -p 'test_023_chapters.py' -v
 python build_zip.py
-python tools/build_kodi_repository.py
 ```
 
-The first two test suites should be run in **separate processes**. Build output for the service goes to `dist/`; Kodi repository files are generated into `repository/zips/`, while `docs/` contains the GitHub Pages bootstrap download page.
+The first two test suites should be run in **separate processes**. The service ZIP is built into `dist/`. Kodi repository packages are generated and published separately by [repository.introskip](https://github.com/zoeywowy/repository.introskip).
 
 [Release history](CHANGELOG.md) · [Publishing guide](docs/PUBLISHING.md) · [Contributing](CONTRIBUTING.md) · [Report a problem](https://github.com/zoeywowy/service.introskip/issues/new)
 
