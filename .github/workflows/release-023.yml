@@ -1,10 +1,16 @@
-name: Validate and publish IntroSkip 0.0.23
+name: Validate and publish IntroSkip pre-release
 
 on:
   push:
     branches: [main]
     paths:
       - ".github/workflows/release-023.yml"
+      - "addon.xml"
+      - "main.py"
+      - "service.py"
+      - "resources/**"
+      - "tests/**"
+      - "build_zip.py"
   workflow_dispatch:
 
 permissions:
@@ -50,7 +56,7 @@ jobs:
           python build_zip.py
           python - <<'PY'
           import zipfile
-          path = 'dist/service.introskip-0.0.23.zip'
+          path = 'dist/service.introskip-0.0.24.zip'
           with zipfile.ZipFile(path) as z:
               assert z.testzip() is None
               assert 'service.introskip/addon.xml' in z.namelist()
@@ -64,19 +70,19 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cat > /tmp/introskip-release.md <<'EOF'
-          IntroSkip 0.0.23 — Kodi 22 pre-release candidate.
+          IntroSkip 0.0.24 — Kodi 22 pre-release candidate.
 
           * Automatic IMDb ID resolution for TV series and movies through the public, keyless Cinemeta metadata API.
           * IntroDB skip timestamps and independent Kodi 22 native chapter detection.
           * Separate Light/Dark button color choices.
           * Removes OMDb, TVDB dependencies, Advanced diagnostics and persistent timestamp caching.
 
-          Install: download **service.introskip-0.0.23.zip** from the Assets section (not GitHub's generated Source code ZIP), then choose Add-ons → Install from zip file in Kodi 22 and restart.
+          Install: download **service.introskip-0.0.24.zip** from the Assets section (not GitHub's generated Source code ZIP), then choose Add-ons → Install from zip file in Kodi 22 and restart.
 
           This is a pre-release pending device testing; please report problems under GitHub Issues.
           EOF
-          if gh release view v0.0.23 >/dev/null 2>&1; then
-            gh release upload v0.0.23 dist/service.introskip-0.0.23.zip --clobber
+          if gh release view v0.0.24 >/dev/null 2>&1; then
+            gh release upload v0.0.24 dist/service.introskip-0.0.24.zip --clobber
           else
-            gh release create v0.0.23 dist/service.introskip-0.0.23.zip --title "IntroSkip v0.0.23 — Kodi 22" --notes-file /tmp/introskip-release.md --prerelease --target main
+            gh release create v0.0.24 dist/service.introskip-0.0.24.zip --title "IntroSkip v0.0.24 — Kodi 22" --notes-file /tmp/introskip-release.md --prerelease --target main
           fi
