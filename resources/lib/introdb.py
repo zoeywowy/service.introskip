@@ -52,68 +52,78 @@ class IntroDBAdapter(PointsAdapter):
         data = self.get_episode_data(imdb, season, episode)
         return self.get_points_from_data(data, segment_type)
 
-    def get_points_from_data(self, data, segment_type):
-        """Parse a segment from an already-fetched episode response."""
+    def get_all_points_from_data(self, data, segment_type):
+        """Return every valid interval in a live API response or open-data row set."""
         if segment_type not in ("intro", "recap", "outro", "post_credits"):
             tools.log("Unsupported IntroDB segment type: {}".format(segment_type), "warning")
-            return None
+            return []
         if not isinstance(data, dict):
-            return None
+            return []
+        raw = data.get("post_credits" if segment_type == "post_credits" else segment_type)
+        if isinstance(raw, dict):
+            raw = [raw]
+        if not isinstance(raw, list):
+            return []
 
-        segment_data = data.get("post_credits" if segment_type == "post_credits" else segment_type)
-        if isinstance(segment_data, list):
-            segment_data = segment_data[0] if segment_data else None
-        if not isinstance(segment_data, dict):
-            tools.log("IntroDB has no {} timestamp in this response".format(segment_type), "debug")
-            return None
+        ranges = []
+        for segment_data in raw:
+            if not isinstance(segment_data, dict):
+                continue
+            start_value = segment_data.get("start_sec")
+            end_value = segment_data.get("end_sec")
+            if start_value is None and segment_data.get("start_ms") is not None:
+                start_value = self._to_seconds(segment_data.get("start_ms"))
+                if start_value is not None:
+                    start_value /= 1000.0
+            if end_value is None and segment_data.get("end_ms") is not None:
+                end_value = self._to_seconds(segment_data.get("end_ms"))
+                if end_value is not None:
+                    end_value /= 1000.0
 
-        # Prefer the documented seconds fields, but accept the millisecond
-        # fields as a fallback so a partial/older response remains usable.
-        start_value = segment_data.get("start_sec")
-        end_value = segment_data.get("end_sec")
-        if start_value is None and segment_data.get("start_ms") is not None:
-            start_value = self._to_seconds(segment_data.get("start_ms"))
-            if start_value is not None:
-                start_value /= 1000.0
-        if end_value is None and segment_data.get("end_ms") is not None:
-            end_value = self._to_seconds(segment_data.get("end_ms"))
-            if end_value is not None:
-                end_value /= 1000.0
+            start_seconds = self._to_seconds(start_value)
+            end_seconds = self._to_seconds(end_value)
+            if (start_seconds is None or end_seconds is None or start_seconds < 0
+                    or end_seconds <= start_seconds or end_seconds >= 86400):
+                tools.log("IntroDB returned an invalid {} range".format(segment_type), "warning")
+                continue
+            start = self._to_time(start_seconds)
+            end = self._to_time(end_seconds)
+            if start is not None and end is not None:
+                ranges.append((start, end))
 
-        start_seconds = self._to_seconds(start_value)
-        end_seconds = self._to_seconds(end_value)
-        if (
-            start_seconds is None
-            or end_seconds is None
-            or start_seconds < 0
-            or end_seconds <= start_seconds
-            or end_seconds >= 86400
-        ):
+        unique = {}
+        for start, end in ranges:
+            key = (self._to_seconds(start), self._to_seconds(end))
+            unique[key] = (start, end)
+        result = [unique[key] for key in sorted(unique)]
+        if result:
+            details = []
+            confidence_values = [
+                item.get("confidence") for item in raw
+                if isinstance(item, dict) and isinstance(item.get("confidence"), (int, float))
+                and not isinstance(item.get("confidence"), bool)
+            ]
+            submission_values = [
+                item.get("submission_count") for item in raw
+                if isinstance(item, dict) and isinstance(item.get("submission_count"), int)
+            ]
+            if confidence_values:
+                details.append("confidence: {:.0%}".format(max(confidence_values)))
+            if submission_values:
+                details.append("submissions: {}".format(max(submission_values)))
             tools.log(
-                "IntroDB returned an invalid {} range".format(segment_type),
-                "warning",
+                "IntroDB {}: {} interval(s){}".format(
+                    segment_type, len(result),
+                    " ({})".format(", ".join(details)) if details else ""
+                ),
+                "info",
             )
-            return None
+        return result
 
-        start = self._to_time(start_seconds)
-        end = self._to_time(end_seconds)
-        if start is None or end is None:
-            return None
-
-        confidence = segment_data.get("confidence")
-        submission_count = segment_data.get("submission_count")
-        details = []
-        if isinstance(confidence, (int, float)) and not isinstance(confidence, bool):
-            if math.isfinite(float(confidence)):
-                details.append("confidence: {:.0%}".format(max(0.0, min(1.0, float(confidence)))))
-        if isinstance(submission_count, int) and not isinstance(submission_count, bool):
-            details.append("submissions: {}".format(max(0, submission_count)))
-        detail_text = " ({})".format(", ".join(details)) if details else ""
-        tools.log(
-            "IntroDB {}: {} to {}{}".format(segment_type, start, end, detail_text),
-            "info",
-        )
-        return [(start, end)]
+    def get_points_from_data(self, data, segment_type):
+        """Backward-compatible first interval accessor."""
+        points = self.get_all_points_from_data(data, segment_type)
+        return points[0] if points else None
 
     @staticmethod
     def is_confirmed_absent_from_data(data, segment_type):
