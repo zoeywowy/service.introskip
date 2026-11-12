@@ -34,14 +34,16 @@ class IntroSkipDialog(xbmcgui.WindowXMLDialog):
         self._cancelled=False
         self.segment_type='intro'
         self.skip_time=0
+        self.skip_start=0
         self.preview_mode=False
         self._button=None
         self._icon=None
         self._button_id=None
 
-    def configure(self, segment_type, skip_time):
+    def configure(self, segment_type, skip_time, skip_start=None):
         self.segment_type=segment_type if segment_type in SEGMENT_LABELS else 'intro'
         self.skip_time=skip_time
+        self.skip_start=skip_start if skip_start is not None else 0
         self._cancelled=False
         self.setProperty('skip_time',str(skip_time))
         self.setProperty('skip_type',self.segment_type)
@@ -145,7 +147,8 @@ class IntroSkipDialog(xbmcgui.WindowXMLDialog):
         self._cancelled=True
         self.setProperty('cancelled','True')
         if self.player:
-            self.player.reset_segment(self.segment_type)
+            bounds = (self.skip_start, end) if self.skip_start is not None else None
+            self.player.reset_segment(self.segment_type, bounds)
         self.close()
 
     def isCancelled(self):
