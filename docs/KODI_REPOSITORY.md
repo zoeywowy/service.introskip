@@ -6,11 +6,8 @@ This service repository contains only the IntroSkip add-on source and its direct
 
 ## Install the repository
 
-1. Add this File Manager source in Kodi:
-
-   `https://zoeywowy.github.io/repository.introskip/`
-
-2. Install `repository.introskip-1.0.4.zip` from that source.
+1. Download `repository.introskip-1.0.4.zip` from the [IntroSkip download page](https://zoeywowy.github.io/repository.introskip/) in a normal browser.
+2. In Kodi, choose **Add-ons → Install from zip file** and select the downloaded ZIP from local storage or a network share.
 3. Open **Install from repository → IntroSkip Repository → Services → IntroSkip**.
 
 See the separate project's [installation guide](https://github.com/zoeywowy/repository.introskip/blob/main/docs/INSTALLATION.md) and [maintainer guide](https://github.com/zoeywowy/repository.introskip/blob/main/docs/MAINTAINING.md).
