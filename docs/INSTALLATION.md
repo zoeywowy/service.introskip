@@ -4,13 +4,13 @@ IntroSkip targets **Kodi 22**. Install the separate Kodi repository first if you
 
 ## Method 1: Install through the Kodi repository
 
-1. In Kodi, open **Settings → File manager → Add source**.
-2. Enter `https://zoeywowy.github.io/repository.introskip/` and name the source **IntroSkip Repository**.
-3. Open **Add-ons → Install from zip file**.
-4. Select the **IntroSkip Repository** source, then choose `repository.introskip-1.0.4.zip`.
-5. Wait for Kodi to confirm that **IntroSkip Repository** was installed.
-6. Open **Add-ons → Install from repository → IntroSkip Repository → Services → IntroSkip** and install it.
-7. Restart Kodi if the add-on does not appear immediately.
+1. Open the [IntroSkip download page](https://zoeywowy.github.io/repository.introskip/) in a normal web browser and download `repository.introskip-1.0.4.zip`. Do not extract it.
+2. Make the ZIP available to Kodi. On Windows, leave it in Downloads; on Android/Fire TV, download it on the device or copy it over USB or a shared network folder.
+3. In Kodi, open **Add-ons → Install from zip file** and browse to the downloaded ZIP.
+4. Wait for Kodi to confirm that **IntroSkip Repository** was installed.
+5. Open **Add-ons → Install from repository → IntroSkip Repository → Services → IntroSkip** and install it.
+
+**Important:** Do not add the GitHub Pages address as a Kodi File Manager source. It is a webpage, not a directory listing. If Kodi's ZIP browser shows only `..` and `0 items`, cancel it and download the ZIP in a normal browser first.
 
 The repository installer is maintained separately at [zoeywowy/repository.introskip](https://github.com/zoeywowy/repository.introskip). It uses Kodi's standard raw GitHub `addons.xml`, `addons.xml.md5`, and `datadir zip="true"` layout.
 
@@ -29,7 +29,7 @@ Direct installation does not install the repository; it simply installs the serv
 
 ## If installation fails
 
-Confirm your Kodi version and note the exact error. If the repository gives an error, check the [repository project's troubleshooting instructions](https://github.com/zoeywowy/repository.introskip/blob/main/docs/INSTALLATION.md). If the service ZIP fails, look for dependency or XML errors in `kodi.log`.
+Confirm your Kodi version and note the exact error. If the repository gives an error after the ZIP has installed, check the [repository project's troubleshooting instructions](https://github.com/zoeywowy/repository.introskip/blob/main/docs/INSTALLATION.md). If the service ZIP fails, look for dependency or XML errors in `kodi.log`.
 
 **Do not uninstall your working add-ons or delete your Kodi userdata just to troubleshoot IntroSkip.**
 
