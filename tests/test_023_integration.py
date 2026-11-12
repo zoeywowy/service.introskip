@@ -1,4 +1,4 @@
-"""Offline Kodi 22 integration and keyless Cinemeta resolver tests for 0.0.23."""
+"""Offline Kodi 22 integration and keyless Cinemeta resolver tests for 0.0.24."""
 import os
 import sys
 import types
@@ -102,7 +102,7 @@ class PackageTests(unittest.TestCase):
                                 'general.use_outro':True,'general.use_movie_credits':True})
     def test_manifest_version_and_dependencies(self):
         root=ET.parse(BASE/'addon.xml').getroot()
-        self.assertEqual(root.attrib['version'],'0.0.23')
+        self.assertEqual(root.attrib['version'],'0.0.24')
         deps=[item.attrib['addon'] for item in root.findall('requires/import')]
         self.assertEqual(deps,['xbmc.python','script.module.requests'])
     def test_settings_no_advanced_or_diagnostics(self):
