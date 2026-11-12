@@ -8,6 +8,7 @@ SEGMENT_LABELS = {
     'intro': 'Skip Intro',
     'outro': 'Skip Credits',
     'movie_outro': 'Skip Movie Credits',
+    'preview': 'Skip Preview',
 }
 
 
