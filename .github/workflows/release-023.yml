@@ -16,6 +16,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: introskip-pre-release
+  cancel-in-progress: true
+
 jobs:
   validate-and-release:
     runs-on: ubuntu-latest
@@ -28,8 +32,14 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Install offline test dependencies
+      - name: Install test dependency
         run: python -m pip install requests
+
+      - name: Read add-on version
+        run: |
+          VERSION="$(python -c "import xml.etree.ElementTree as ET; print(ET.parse('addon.xml').getroot().get('version'))")"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "ZIP_PATH=dist/service.introskip-$VERSION.zip" >> "$GITHUB_ENV"
 
       - name: Validate Python and Kodi XML
         run: |
@@ -45,44 +55,58 @@ jobs:
           print('Python and XML validation passed')
           PY
 
-      - name: Test playback and Cinemeta integration logic
+      - name: Test playback and multi-source integration
         run: python -m unittest discover -s tests -p 'test_023_integration.py' -v
 
-      - name: Test chapter detection
+      - name: Test Kodi 22 native chapter detection
         run: python -m unittest discover -s tests -p 'test_023_chapters.py' -v
 
-      - name: Build the Kodi-installable ZIP
+      - name: Build and verify the Kodi-installable ZIP
         run: |
           python build_zip.py
           python - <<'PY'
+          import os
           import zipfile
-          path = 'dist/service.introskip-0.0.24.zip'
+          path = os.environ['ZIP_PATH']
           with zipfile.ZipFile(path) as z:
               assert z.testzip() is None
-              assert 'service.introskip/addon.xml' in z.namelist()
-              assert 'service.introskip/service.py' in z.namelist()
-              assert 'service.introskip/icon.png' in z.namelist()
-          print('Installable ZIP structure verified')
+              names = set(z.namelist())
+              required = {
+                  'service.introskip/addon.xml',
+                  'service.introskip/service.py',
+                  'service.introskip/icon.png',
+                  'service.introskip/resources/lib/introdb_open_data.py',
+                  'service.introskip/resources/lib/theintrodb.py',
+              }
+              missing = required - names
+              assert not missing, 'Missing package files: {}'.format(sorted(missing))
+              assert not any(name.startswith('service.introskip/repository/') for name in names)
+              assert not any(name.startswith('service.introskip/tools/') for name in names)
+          print('Installable ZIP structure verified:', path)
           PY
 
       - name: Publish GitHub pre-release with installable ZIP
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cat > /tmp/introskip-release.md <<'EOF'
-          IntroSkip 0.0.24 — Kodi 22 pre-release candidate.
+          cat > /tmp/introskip-release.md <<EOF
+          IntroSkip ${VERSION} — Kodi 22 multi-source pre-release.
 
-          * Automatic IMDb ID resolution for TV series and movies through the public, keyless Cinemeta metadata API.
-          * IntroDB skip timestamps and independent Kodi 22 native chapter detection.
-          * Separate Light/Dark button color choices.
-          * Removes OMDb, TVDB dependencies, Advanced diagnostics and persistent timestamp caching.
+          * IntroDB daily open-data snapshot, downloaded only when the manifest changes and indexed locally with SQLite.
+          * IntroDB single-episode API fallback when the local snapshot is unavailable or has no record.
+          * TheIntroDB v4 lookup using the verified IMDb ID and actual playback duration, with a seven-day local response cache.
+          * Multiple timestamp intervals and optional Skip Preview prompts.
+          * Kodi 22 native chapter detection remains independent and explicit local chapter names retain priority.
+          * Cinemeta remains the keyless title resolver. No OMDb, subtitle detection, Kodi library ID lookup, or Advanced diagnostics.
 
-          Install: download **service.introskip-0.0.24.zip** from the Assets section (not GitHub's generated Source code ZIP), then choose Add-ons → Install from zip file in Kodi 22 and restart.
+          IntroDB attribution: "Contains data from IntroDB (introdb.app), available under the ODbL."
 
-          This is a pre-release pending device testing; please report problems under GitHub Issues.
+          Install: download **service.introskip-${VERSION}.zip** from the Assets section (not GitHub's generated Source code ZIP), then choose Add-ons → Install from zip file in Kodi 22 and restart.
+
+          This is a pre-release pending real-device testing; please report problems under GitHub Issues.
           EOF
-          if gh release view v0.0.24 >/dev/null 2>&1; then
-            gh release upload v0.0.24 dist/service.introskip-0.0.24.zip --clobber
+          if gh release view "v${VERSION}" >/dev/null 2>&1; then
+            gh release upload "v${VERSION}" "${ZIP_PATH}" --clobber
           else
-            gh release create v0.0.24 dist/service.introskip-0.0.24.zip --title "IntroSkip v0.0.24 — Kodi 22" --notes-file /tmp/introskip-release.md --prerelease --target main
+            gh release create "v${VERSION}" "${ZIP_PATH}" --title "IntroSkip v${VERSION} — Kodi 22" --notes-file /tmp/introskip-release.md --prerelease --target main
           fi
