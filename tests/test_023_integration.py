@@ -1,4 +1,4 @@
-"""Offline Kodi 22 integration and keyless Cinemeta resolver tests for 0.0.24."""
+"""Offline Kodi 22 integration and multi-source tests for 0.0.25."""
 import os
 import sys
 import types
@@ -381,14 +381,14 @@ class MultiSourceTests(unittest.TestCase):
 
     def test_open_data_download_builds_local_index_and_skips_unchanged_snapshot(self):
         segments_csv = (
-            'imdb_id,is_movie,season,episode,segment,start_ms,end_ms,confidence,submission_count,updated_at\\n'
-            'tt7631058,f,1,3,intro,76000,167000,0.92,14,2026-11-12T00:00:00Z\\n'
-            'tt7631058,f,1,3,recap,5000,74000,0.85,8,2026-11-12T00:00:00Z\\n'
-            'tt1375666,t,0,0,outro,3000000,3300000,0.9,11,2026-11-12T00:00:00Z\\n'
+            'imdb_id,is_movie,season,episode,segment,start_ms,end_ms,confidence,submission_count,updated_at\n'
+            'tt7631058,f,1,3,intro,76000,167000,0.92,14,2026-11-12T00:00:00Z\n'
+            'tt7631058,f,1,3,recap,5000,74000,0.85,8,2026-11-12T00:00:00Z\n'
+            'tt1375666,t,0,0,outro,3000000,3300000,0.9,11,2026-11-12T00:00:00Z\n'
         ).encode('utf-8')
         segmentless_csv = (
-            'imdb_id,is_movie,season,episode,segment,updated_at\\n'
-            'tt7631058,f,1,4,intro,2026-11-12T00:00:00Z\\n'
+            'imdb_id,is_movie,season,episode,segment,updated_at\n'
+            'tt7631058,f,1,4,intro,2026-11-12T00:00:00Z\n'
         ).encode('utf-8')
         segments_gz = gzip.compress(segments_csv)
         segmentless_gz = gzip.compress(segmentless_csv)
