@@ -10,8 +10,8 @@ if addon_id != 'service.introskip':
     raise SystemExit('Unexpected addon id: ' + str(addon_id))
 out = root / 'dist' / f'{addon_id}-{version}.zip'
 out.parent.mkdir(exist_ok=True)
-ignore_dirs = {'.git', '.github', 'dist', 'docs', 'tests', '__pycache__', '.pytest_cache', '.venv', 'venv'}
-exclude_names = {'build_zip.py', '.gitignore', 'CONTRIBUTING.md', 'SECURITY.md', 'LICENSE'}
+ignore_dirs = {'.git', '.github', 'dist', 'docs', 'tests', 'repository', 'tools', '__pycache__', '.pytest_cache', '.venv', 'venv'}
+exclude_names = {'build_zip.py', '.gitignore', 'README.md', 'CHANGELOG.md', 'HISTORY.md', 'CONTRIBUTING.md', 'SECURITY.md', 'LICENSE'}
 with ZipFile(out, 'w', ZIP_DEFLATED) as archive:
     for path in sorted(root.rglob('*')):
         relative = path.relative_to(root)

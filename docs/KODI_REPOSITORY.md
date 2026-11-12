@@ -1,59 +1,22 @@
-# IntroSkip's Kodi repository
+# Kodi repository
 
-The repository bootstrap ZIP is hosted on GitHub Pages. After installation, the repository uses the same standard structure as the A4K repository you supplied: a plain `addons.xml` index, a matching `addons.xml.md5`, and ZIP packages under `addon.id/addon.id-version.zip`.
+The Kodi repository is now maintained in its own GitHub project: **[zoeywowy/repository.introskip](https://github.com/zoeywowy/repository.introskip)**.
 
-**Bootstrap download:** [repository.introskip-1.0.3.zip](https://zoeywowy.github.io/service.introskip/repository.introskip-1.0.3.zip)
+This service repository contains only the IntroSkip add-on source and its direct-install release ZIP. The separate repository project contains the Kodi repository add-on, generated index, MD5 checksum, and versioned add-on packages.
 
-## Install on Kodi 22
+## Install the repository
 
-1. Download the bootstrap ZIP to the Kodi device or a location Kodi can access.
-2. Open **Add-ons → Install from zip file**.
-3. Select `repository.introskip-1.0.3.zip`.
-4. Open **Add-ons → Install from repository → IntroSkip Repository → Services → IntroSkip → Install**.
+1. Add this File Manager source in Kodi:
 
-The repository add-on manifest uses these exact Kodi endpoints:
+   `https://zoeywowy.github.io/repository.introskip/`
 
-| Purpose | URL |
-| --- | --- |
-| Add-on index | [addons.xml](https://raw.githubusercontent.com/zoeywowy/service.introskip/main/repository/zips/addons.xml) |
-| MD5 checksum | [addons.xml.md5](https://raw.githubusercontent.com/zoeywowy/service.introskip/main/repository/zips/addons.xml.md5) |
-| ZIP package base | [repository/zips/](https://github.com/zoeywowy/service.introskip/tree/main/repository/zips) |
+2. Install `repository.introskip-1.0.0.zip` from that source.
+3. Open **Install from repository → IntroSkip Repository → Services → IntroSkip**.
 
-The manifest follows the working A4K pattern:
+See the separate project's [installation guide](https://github.com/zoeywowy/repository.introskip/blob/main/docs/INSTALLATION.md) and [maintainer guide](https://github.com/zoeywowy/repository.introskip/blob/main/docs/MAINTAINING.md).
 
-- `<info compressed="false">` points to the raw GitHub XML index.
-- `<checksum>` points to the matching raw GitHub MD5 file.
-- `<datadir zip="true">` points to the package base directory.
-- Each package is stored as `repository/zips/addon.id/addon.id-version.zip`.
-- The index and checksum are committed to the same branch as the packages.
+## Direct installation
 
-GitHub Pages is **not** used for Kodi's update index or package downloads. It only provides the initial repository ZIP download.
+If you do not want repository-based updates, install the service ZIP from the [IntroSkip Releases page](https://github.com/zoeywowy/service.introskip/releases).
 
-## Repository file layout
-
-```text
-repository/
-└── zips/
-    ├── addons.xml
-    ├── addons.xml.md5
-    ├── repository.introskip/
-    │   ├── addon.xml
-    │   ├── icon.png
-    │   └── repository.introskip-1.0.3.zip
-    └── service.introskip/
-        ├── addon.xml
-        ├── icon.png
-        └── service.introskip-0.0.24.zip
-```
-
-## Maintainer checks
-
-1. Open [GitHub Pages settings](https://github.com/zoeywowy/service.introskip/settings/pages) and choose **Source: GitHub Actions**.
-2. Open [GitHub Actions](https://github.com/zoeywowy/service.introskip/actions) and inspect **Build and deploy Kodi repository to GitHub Pages**.
-3. Confirm the workflow validates the XML, exact MD5 digest, `zip="true"` manifest, package folder names and both installable ZIPs.
-4. Confirm the public raw GitHub index and checksum URLs load.
-5. Test a fresh install and an upgrade on Kodi 22 before declaring success.
-
-The current repository add-on version is **1.0.3**. The IntroSkip service remains **0.0.24**; this repository correction does not change playback or detection code.
-
-See [Publishing](PUBLISHING.md) and [Troubleshooting](TROUBLESHOOTING.md).
+Do not use the old `https://zoeywowy.github.io/service.introskip/` address. That was the previous combined layout and is no longer the repository's installation location.
