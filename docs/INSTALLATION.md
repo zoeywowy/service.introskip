@@ -1,27 +1,42 @@
-# Installation
+# Install IntroSkip
 
-## Prerequisites
+IntroSkip targets **Kodi 22**. You can install it through its repository (which is intended to provide updates) or install the service directly from a ZIP.
 
-- Kodi **22** (the version targeted by this build).
-- A device with internet access for Cinemeta and IntroDB lookups.
-- Dependencies declared by the add-on: Kodi Python and `script.module.requests`.
+## Method 1: Install through the Kodi repository
 
-## Install
+1. Open **Kodi → Settings (gear) → File manager → Add source**.
+2. Select **<None>**, enter the source address below, then name it **IntroSkip**.
 
-1. Download the asset named `service.introskip-0.0.23.zip` from [GitHub Releases](https://github.com/zoeywowy/service.introskip/releases). **Do not use GitHub's automatically generated Source code ZIP.**
-2. Transfer the ZIP onto the Kodi device or make it available to Kodi via a file source.
-3. In Kodi: **Settings → Add-ons → Install from zip file**. Enable the required unknown-sources option only if Kodi prompts and you trust the ZIP.
-4. Choose the release asset ZIP. After Kodi confirms installation, restart Kodi.
-5. Visit **Add-ons → My add-ons → Services → IntroSkip → Configure** to adjust Detection, Skip behavior and Button appearance.
+   `https://zoeywowy.github.io/service.introskip/`
 
-## Upgrade
+3. Go to **Add-ons → Install from zip file**. If Kodi prompts about unknown sources, enable that option only if you trust this add-on.
+4. Select **IntroSkip**, then `repository.introskip-1.0.0.zip`.
+5. Go to **Add-ons → Install from repository → IntroSkip Repository → Services → IntroSkip → Install**.
+6. Restart Kodi. To adjust the add-on, open **Add-ons → My add-ons → Services → IntroSkip → Configure**.
 
-Install the newest properly rooted release ZIP over the installed version and restart Kodi. Existing preferences should be preserved. Old disabled settings (for example former OMDb key options) may remain in Kodi's userdata but are not used by v0.0.23.
+The **github.com** project URL is for source code. The **github.io** URL above is the Kodi File Manager source.
 
-## Uninstall
+## Method 2: Install the service directly
 
-Use Kodi **My add-ons → Services → IntroSkip → Uninstall**. Kodi may offer to delete user configuration separately.
+Use this if you do not need repository-based updates or if Kodi displays **“Could not connect to repository.”**
 
-## Release file layout
+1. Download [IntroSkip 0.0.23 ZIP](https://github.com/zoeywowy/service.introskip/releases/download/v0.0.23/service.introskip-0.0.23.zip) from the GitHub release's **Assets**.
+2. Make the file accessible to Kodi on your device.
+3. Choose **Add-ons → Install from zip file** and select `service.introskip-0.0.23.zip`.
+4. Restart Kodi and open IntroSkip's settings.
 
-The installable ZIP must contain `service.introskip/addon.xml` and `service.introskip/service.py` at its top level. Do **not** rename the internal folder or zip only the contents without the `service.introskip/` prefix.
+Do **not** install GitHub's auto-generated “Source code (zip)” file. It is not packaged for Kodi.
+
+Direct installation does not repair a broken repository; it simply lets you try the add-on without that download path.
+
+## If installation fails
+
+First confirm your Kodi version. If the repository gives an error, open the [repository troubleshooting steps](TROUBLESHOOTING.md#repository-wont-connect). If the ZIP fails, note the exact error message and look for dependency or XML errors in `kodi.log`. **Do not uninstall your working add-ons or delete your Kodi userdata just to troubleshoot IntroSkip.**
+
+## Update or remove IntroSkip
+
+To update, install a newer package over the existing add-on, or update it through the repository once repository access works. Existing settings are normally kept. Older unused preferences may remain in Kodi's profile, but 0.0.23 does not use them.
+
+To remove it, open **Add-ons → My add-ons → Services → IntroSkip → Uninstall**. Kodi may separately ask whether to erase settings.
+
+For maintainers: the installable ZIP must contain `service.introskip/addon.xml` and `service.introskip/service.py` inside its top-level `service.introskip/` folder.
