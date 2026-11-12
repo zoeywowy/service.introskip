@@ -1,5 +1,20 @@
 # IntroSkip — Release Notes
 
+## v0.0.25 — Three-source detection and local IntroDB index
+**12 November 2026 · Kodi 22 pre-release**
+
+- Added IntroDB's complete daily open-data export: check the manifest at Kodi startup, download compressed CSV snapshots only when changed, verify SHA-256, and build a local SQLite lookup index.
+- Retained the single-episode IntroDB API as a fallback when the local snapshot is not yet available or has no record.
+- Added TheIntroDB v4 as an independent community source, using the verified IMDb ID and actual playback duration for release matching.
+- Added a seven-day local response cache for TheIntroDB to reduce repeated requests and respect its per-media usage limits.
+- Preserved multiple timestamp intervals from both community sources and added optional **Skip Preview** prompts.
+- Kept Kodi 22 native chapter detection independent; explicit source-local chapter labels remain strongest when providers disagree.
+- Kept Cinemeta keyless and title/type/year checked. No OMDb, subtitle detection, Kodi library ID lookup, Advanced diagnostics, or manual timestamp editor was added.
+- TheIntroDB and Kodi chapter candidates remain Ask-only for automatic skipping. IntroDB retains the existing Auto eligibility and safety checks.
+- IntroDB open data is used under ODbL 1.0 with the required attribution: "Contains data from IntroDB (introdb.app), available under the ODbL."
+
+---
+
 ## Repository 1.0.3 — Standard Kodi repository layout
 **12 November 2026**
 
