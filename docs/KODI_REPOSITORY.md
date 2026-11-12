@@ -10,7 +10,7 @@ This service repository contains only the IntroSkip add-on source and its direct
 
    `https://zoeywowy.github.io/repository.introskip/`
 
-2. Install `repository.introskip-1.0.0.zip` from that source.
+2. Install `repository.introskip-1.0.4.zip` from that source.
 3. Open **Install from repository → IntroSkip Repository → Services → IntroSkip**.
 
 See the separate project's [installation guide](https://github.com/zoeywowy/repository.introskip/blob/main/docs/INSTALLATION.md) and [maintainer guide](https://github.com/zoeywowy/repository.introskip/blob/main/docs/MAINTAINING.md).
