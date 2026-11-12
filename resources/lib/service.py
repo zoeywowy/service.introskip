@@ -191,6 +191,7 @@ def run():
             else:
                 continue
 
+        modal_blocked = False
         for kind in ORDER:
             if not _enabled(kind):
                 continue
@@ -236,6 +237,7 @@ def run():
                     active_dialog = 0
                 if active_dialog and active_dialog >= 13000:
                     # Do not overlay other modal dialogs or configuration windows.
+                    modal_blocked = True
                     break
                 try:
                     dialog.configure(kind, end, start)
@@ -244,7 +246,7 @@ def run():
                 except Exception as exc:
                     tools.log('Could not show {} prompt: {}'.format(kind, exc), 'warning')
                 break
-            if active_key:
+            if active_key or modal_blocked:
                 break
 
     _close(player.get_dialog())
