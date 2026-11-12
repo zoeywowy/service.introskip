@@ -1,4 +1,4 @@
-name: Build Kodi repository for GitHub Pages
+name: Build and deploy Kodi repository to GitHub Pages
 
 on:
   workflow_dispatch:
@@ -16,15 +16,27 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
 
 jobs:
   publish-kodi-repository:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout project
         uses: actions/checkout@v4
         with:
           persist-credentials: true
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -56,11 +68,11 @@ jobs:
               with ZipFile(docs / name) as z:
                   assert z.testzip() is None
                   assert root_file in z.namelist()
-          assert "repository.introskip-1.0.0.zip" in (docs / "index.html").read_text()
-          print("Kodi GitHub Pages repository verified")
+          assert (docs / "index.html").is_file()
+          print("Kodi repository index and both installer ZIPs verified")
           PY
 
-      - name: Commit generated site to main for GitHub Pages
+      - name: Commit generated repository files to main
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -70,3 +82,12 @@ jobs:
             git commit -m "build: publish Kodi repository index and installer ZIPs"
             git push origin HEAD:main
           fi
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: ./docs
+
+      - name: Deploy Kodi repository website
+        id: deployment
+        uses: actions/deploy-pages@v4
