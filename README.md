@@ -12,14 +12,14 @@ IntroSkip is a small background add-on for TV shows and movies. When it finds a 
 
 1. In Kodi, go to **Settings → File manager → Add source**.
 2. Enter `https://zoeywowy.github.io/service.introskip/` and name it **IntroSkip**.
-3. Go to **Add-ons → Install from zip file → IntroSkip** and select `repository.introskip-1.0.1.zip`.
+3. Go to **Add-ons → Install from zip file → IntroSkip** and select `repository.introskip-1.0.2.zip`.
 4. Go to **Add-ons → Install from repository → IntroSkip Repository → Services → IntroSkip → Install**.
 
 **Option 2 — Install directly**
 
 Download [service.introskip-0.0.24.zip](https://github.com/zoeywowy/service.introskip/releases/download/v0.0.24/service.introskip-0.0.24.zip) and install it using **Add-ons → Install from zip file**. Choose the ZIP under **Release assets**, not GitHub's **Source code** archive.
 
-If the repository reports **“Could not connect to repository,”** the direct ZIP may still install. See the [troubleshooting guide](docs/TROUBLESHOOTING.md#repository-wont-connect). Restart Kodi after installation or upgrade.
+If the repository reports **“Could not connect to repository,”** try repository **1.0.2**, which uses a plain-text checksum URL. The direct ZIP may also install. See the [troubleshooting guide](docs/TROUBLESHOOTING.md#repository-wont-connect). Restart Kodi after installation or upgrade.
 
 [Step-by-step installation](docs/INSTALLATION.md) · [Troubleshooting](docs/TROUBLESHOOTING.md)
 

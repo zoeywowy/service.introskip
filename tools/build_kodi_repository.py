@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parent.parent
 PUBLIC = ROOT / "docs"
 BASE = "https://zoeywowy.github.io/service.introskip/"
 REPO_ID = "repository.introskip"
-REPO_VERSION = "1.0.1"
+REPO_VERSION = "1.0.2"
 SERVICE_ID = "service.introskip"
 
 
@@ -35,7 +35,7 @@ def make_repository_manifest() -> ET.Element:
     repo_extension = ET.SubElement(addon, "extension", {"point": "xbmc.addon.repository"})
     directory = ET.SubElement(repo_extension, "dir")
     ET.SubElement(directory, "info", {"compressed": "false"}).text = BASE + "addons.xml"
-    ET.SubElement(directory, "checksum").text = BASE + "addons.xml.md5"
+    ET.SubElement(directory, "checksum").text = BASE + "addons-checksum.txt"
     ET.SubElement(directory, "datadir").text = BASE
     # GitHub Pages does not serve the optional Kodi content-sha256 HTTP header.
     ET.SubElement(directory, "hashes").text = "false"
@@ -107,9 +107,11 @@ def main() -> None:
     ET.fromstring(content)
     (PUBLIC / "addons.xml").write_bytes(content)
     # Kodi uses this as the update-change indicator, not as a security proof.
-    (PUBLIC / "addons.xml.md5").write_text(
-        hashlib.md5(content).hexdigest(), encoding="ascii"
-    )
+    checksum = hashlib.md5(content).hexdigest()
+    # A plain-text endpoint avoids compatibility problems fetching .md5 URLs.
+    (PUBLIC / "addons-checksum.txt").write_text(checksum + "\n", encoding="ascii")
+    # Keep the legacy URL for already-installed older repository versions.
+    (PUBLIC / "addons.xml.md5").write_text(checksum, encoding="ascii")
     (PUBLIC / ".nojekyll").touch()
     html = f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">

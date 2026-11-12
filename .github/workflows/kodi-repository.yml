@@ -60,9 +60,14 @@ jobs:
           assert index.tag == "addons"
           ids = {addon.get("id") for addon in index}
           assert ids == {"service.introskip", "repository.introskip"}, ids
-          assert (docs / "addons.xml.md5").read_text() == hashlib.md5(data).hexdigest()
+          digest = hashlib.md5(data).hexdigest()
+          assert (docs / "addons.xml.md5").read_text() == digest
+          assert (docs / "addons-checksum.txt").read_text().strip() == digest
+          repository = next(a for a in index if a.get("id") == "repository.introskip")
+          checksum_url = repository.findtext("./extension[@point='xbmc.addon.repository']/dir/checksum")
+          assert checksum_url == "https://zoeywowy.github.io/service.introskip/addons-checksum.txt"
           for name, root_file in [
-              ("repository.introskip-1.0.1.zip", "repository.introskip/addon.xml"),
+              ("repository.introskip-1.0.2.zip", "repository.introskip/addon.xml"),
               ("service.introskip/service.introskip-0.0.24.zip", "service.introskip/addon.xml"),
           ]:
               with ZipFile(docs / name) as z:
@@ -82,8 +87,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f docs/.nojekyll docs/index.html docs/addons.xml docs/addons.xml.md5
-          git add -f docs/repository.introskip-1.0.1.zip docs/repository.introskip/ docs/service.introskip/
+          git add -f docs/.nojekyll docs/index.html docs/addons.xml docs/addons.xml.md5 docs/addons-checksum.txt
+          git add -f docs/repository.introskip-1.0.2.zip docs/repository.introskip/ docs/service.introskip/
           if ! git diff --cached --quiet; then
             git commit -m "build: publish Kodi repository index and installer ZIPs"
             git pull --rebase origin main
@@ -98,3 +103,9 @@ jobs:
       - name: Deploy Kodi repository website
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Verify published checksum URL
+        run: |
+          curl -fLsS --retry 8 --retry-all-errors --retry-delay 3 "https://zoeywowy.github.io/service.introskip/addons-checksum.txt" -o /tmp/introskip-checksum.txt
+          test "$(cat /tmp/introskip-checksum.txt)" = "$(cat docs/addons-checksum.txt)"
+          echo "Public Kodi checksum is reachable and matches the current index"

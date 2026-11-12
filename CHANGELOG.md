@@ -1,5 +1,17 @@
 # IntroSkip — Release Notes
 
+## Repository 1.0.2 — Checksum accessibility update
+**12 November 2026**
+
+- Switched the repository checksum URL from `addons.xml.md5` to a plain-text `addons-checksum.txt` endpoint, which may avoid extension-related HTTP download issues.
+- Kept the legacy `.md5` file for older installations and added a public-URL check to the GitHub Pages workflow.
+- Corrected installation instructions after a user log showed an extra `s` in the File Manager source URL.
+- IntroSkip service remains 0.0.24, with no playback or detection changes.
+- Device verification is still required.
+
+---
+
+
 ## v0.0.24 — Kodi 22 installation compatibility
 **12 November 2026 · Pre-release**
 
