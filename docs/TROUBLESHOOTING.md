@@ -5,11 +5,11 @@
 If Kodi says **“Could not connect to repository”**, that refers to downloading or reading the repository list. It does not, by itself, prove that the IntroSkip service is broken.
 
 1. On a browser, open the [repository index](https://zoeywowy.github.io/service.introskip/addons.xml). A message that the XML **“does not appear to have any style information”** is normal. You should see `<addons>` and entries for `repository.introskip` and `service.introskip`.
-2. Check the [checksum file](https://zoeywowy.github.io/service.introskip/addons.xml.md5) and the [repository installer ZIP](https://zoeywowy.github.io/service.introskip/repository.introskip-1.0.0.zip). The checksum should show plain text; the ZIP should download. A working index **alone** does not confirm every file is accessible.
+2. Check the [checksum file](https://zoeywowy.github.io/service.introskip/addons.xml.md5) and the [repository installer ZIP](https://zoeywowy.github.io/service.introskip/repository.introskip-1.0.1.zip). The checksum should show plain text; the ZIP should download. A working index **alone** does not confirm every file is accessible.
 3. Make sure Kodi's File Manager source is exactly `https://zoeywowy.github.io/service.introskip/`, with **github.io**, not **github.com**. An installed repository also has its own URLs; changing the File Manager source alone does not rewrite an already installed repository add-on.
 4. Restart Kodi, then use the add-on browser's **Check for updates** command if available. Verify that the device's date/time and internet access are correct. DNS, TLS certificates, VPNs, device connectivity and stale repository information can cause a mismatch between a phone browser and Kodi.
 5. If you installed an older copy of **IntroSkip Repository**, consider reinstalling the current repository ZIP. You do not need to delete IntroSkip's personal settings to do this.
-6. Still failing? Try the [direct service ZIP](https://github.com/zoeywowy/service.introskip/releases/download/v0.0.23/service.introskip-0.0.23.zip) as a temporary alternative, then capture Kodi's log after reproducing the repository error.
+6. Still failing? Try the [direct service ZIP](https://github.com/zoeywowy/service.introskip/releases/download/v0.0.24/service.introskip-0.0.24.zip) as a temporary alternative, then capture Kodi's log after reproducing the repository error.
 
 **Important:** We have confirmed that the index loads in a browser, but that does not establish why your Kodi device still reports a connection failure. The relevant `kodi.log` entry is needed to tell whether the problem is a network response, bad checksum, invalid dependency, or failed index parsing.
 
@@ -45,4 +45,4 @@ For playback issues, include the movie or show name and season/episode if helpfu
 
 ## Testing status
 
-Version 0.0.23 has automated tests using Kodi stubs. Real-device behavior, including Kodi 22 prerelease builds and third-party providers, still needs validation.
+Version 0.0.24 has automated tests using Kodi stubs. Real-device behavior, including Kodi 22 prerelease builds and third-party providers, still needs validation.
