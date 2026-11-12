@@ -6,13 +6,13 @@ This service repository contains only the IntroSkip add-on source and its direct
 
 ## Install the repository
 
-1. Open the [IntroSkip download page](https://zoeywowy.github.io/repository.introskip/) in a browser and download `repository.introskip-1.0.4.zip`.
-2. In Kodi, choose **Add-ons → Install from zip file** and browse to the downloaded ZIP.
-3. Open **Install from repository → IntroSkip Repository → Services → IntroSkip**.
+1. Open the [IntroSkip download page](https://zoeywowy.github.io/repository.introskip/) in a normal web browser.
+2. Download `repository.introskip-1.0.4.zip`. Do not extract it.
+3. Make the ZIP accessible to Kodi using Downloads, USB or a shared network folder.
+4. In Kodi, choose **Add-ons → Install from zip file** and browse to the downloaded ZIP.
+5. Open **Install from repository → IntroSkip Repository → Services → IntroSkip**.
 
-Alternatively, add `https://zoeywowy.github.io/repository.introskip/` as a Kodi **Settings → File manager → Add source** entry, then select that named source in **Install from zip file**.
-
-If Kodi's ZIP picker shows only `..` and **0 items**, it is displaying an empty folder. Navigate to the folder where the ZIP was downloaded or choose the named File Manager source; the ZIP picker itself does not fetch a pasted URL.
+**Do not add the GitHub Pages address as a Kodi File Manager source.** It serves an HTML download page, not a browseable ZIP directory. If the ZIP picker shows only `..` and **0 items**, it is browsing an empty folder; navigate to the folder containing the ZIP.
 
 See the separate project's [installation guide](https://github.com/zoeywowy/repository.introskip/blob/main/docs/INSTALLATION.md) and [maintainer guide](https://github.com/zoeywowy/repository.introskip/blob/main/docs/MAINTAINING.md).
 
