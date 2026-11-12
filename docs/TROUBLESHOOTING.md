@@ -8,7 +8,7 @@ The repository installer now lives in a separate project and follows the standar
 
 1. In Kodi, open **Settings → File manager → Add source**.
 2. Enter `https://zoeywowy.github.io/repository.introskip/` and name the source **IntroSkip Repository**.
-3. Open **Add-ons → Install from zip file → IntroSkip Repository** and install `repository.introskip-1.0.0.zip`.
+3. Open **Add-ons → Install from zip file → IntroSkip Repository** and install `repository.introskip-1.0.4.zip`.
 4. Open **Install from repository → IntroSkip Repository → Services → IntroSkip**.
 
 Check that these public files open in a browser:
