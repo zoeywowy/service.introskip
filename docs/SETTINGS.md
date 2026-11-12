@@ -31,6 +31,6 @@ Choose a **Light** or **Dark** theme; each has its own remembered button color. 
 
 ## What was removed
 
-Version 0.0.23 no longer includes an Advanced tab, OMDb API key, chapter-inspector button, playback diagnostics action, subtitle detection, a manual timestamp editor, or a persistent IMDb/timestamp cache. Old unused settings can remain in Kodi's profile but are not read by this build.
+Version 0.0.24 no longer includes an Advanced tab, OMDb API key, chapter-inspector button, playback diagnostics action, subtitle detection, a manual timestamp editor, or a persistent IMDb/timestamp cache. Old unused settings can remain in Kodi's profile but are not read by this build.
 
 If you need help with a missing button or bad timestamps, see [Troubleshooting](TROUBLESHOOTING.md).
