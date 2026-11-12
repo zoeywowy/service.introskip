@@ -24,19 +24,14 @@
 ---
 
 
-## v0.0.24 — Kodi 22 installation compatibility
+## v0.0.24 — Kodi 22 compatibility and repository separation
 **12 November 2026 · Pre-release**
 
-- Corrected the minimum `xbmc.python` requirement from **3.1.1** to **3.1.0**, matching Kodi 22's published Python add-on manifest.
-- Declared a minimum `script.module.requests` version and added clearer add-on metadata.
-- Updated the Kodi repository installer to **1.0.1** and included artwork alongside the hosted ZIPs.
-- Rewrote installation, troubleshooting and contributor documentation for the current build.
-- Cinemeta, IntroDB, native chapter detection, Ask/Auto behavior and button appearance are unchanged.
-- The repository connection problem still needs real-device confirmation: a browser displaying `addons.xml` does not prove Kodi can access or parse it.
-
----
-
-A Kodi 22 skip-button service with **Cinemeta + IntroDB + native chapters**, readable theme palettes and minimal settings.
+- Corrected the minimum `xbmc.python` requirement to **3.1.0** for the Kodi 22 runtime.
+- Declared the `script.module.requests` dependency and improved add-on metadata.
+- Kept Cinemeta title identification, IntroDB timestamps, native Kodi 22 chapters, Ask/Auto behavior, and Light/Dark button palettes.
+- Simplified the service ZIP builder so it packages the add-on runtime, not repository-generation tools or the old combined repository feed.
+- Moved Kodi repository installation and package hosting into the separate [repository.introskip project](https://github.com/zoeywowy/repository.introskip).
 
 ---
 
