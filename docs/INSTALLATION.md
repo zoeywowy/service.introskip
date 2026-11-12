@@ -7,7 +7,7 @@ IntroSkip targets **Kodi 22**. Install the separate Kodi repository first if you
 1. In Kodi, open **Settings → File manager → Add source**.
 2. Enter `https://zoeywowy.github.io/repository.introskip/` and name the source **IntroSkip Repository**.
 3. Open **Add-ons → Install from zip file**.
-4. Select the **IntroSkip Repository** source, then choose `repository.introskip-1.0.0.zip`.
+4. Select the **IntroSkip Repository** source, then choose `repository.introskip-1.0.4.zip`.
 5. Wait for Kodi to confirm that **IntroSkip Repository** was installed.
 6. Open **Add-ons → Install from repository → IntroSkip Repository → Services → IntroSkip** and install it.
 7. Restart Kodi if the add-on does not appear immediately.
