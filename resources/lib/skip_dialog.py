@@ -88,8 +88,8 @@ class IntroSkipDialog(xbmcgui.WindowXMLDialog):
         # Short labels + XBFONT_TRUNCATED prevent the scrolling marquee loop.
         label = 'Skip Credits' if self.segment_type == 'movie_outro' else SEGMENT_LABELS.get(self.segment_type, 'Skip Intro')
         if size == 0 and contents == 0:
-            label = {'intro':'Intro', 'recap':'Recap', 'outro':'Credits',
-                     'movie_outro':'Credits'}.get(self.segment_type, 'Skip')
+            label = {'intro':'Intro', 'recap':'Recap', 'preview':'Preview',
+                     'outro':'Credits', 'movie_outro':'Credits'}.get(self.segment_type, 'Skip')
         text = label if contents != 2 else '' 
         text_color=readable_color(theme=theme)
         # Kodi directly constructs this focusable button with bundled PNG textures.
