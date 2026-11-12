@@ -1,71 +1,82 @@
 # IntroSkip for Kodi 22
 
-**Automatically find intros, recaps and credits with Cinemeta, IntroDB and Kodi's native chapters.**
+Skip intros, recaps and credits in Kodi without setting up an API key.
 
-![Kodi 22](https://img.shields.io/badge/Kodi-22-blue) ![Python 3](https://img.shields.io/badge/Python-3-blue) ![Release](https://img.shields.io/badge/release-v0.0.23-orange) ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+IntroSkip is a small background add-on for TV shows and movies. When it finds a supported segment, it offers a **Skip Intro**, **Skip Recap**, or **Skip Credits** button. You can choose to press the button yourself, or allow certain verified segments to skip automatically.
 
-IntroSkip is a lightweight Kodi service add-on for TV episodes and movies. When a supported segment is detected, it displays a remote-friendly **Skip Intro**, **Skip Recap**, or **Skip Credits** button. Skip behavior can be set to **Ask** or **Auto**; automatic skipping only uses eligible IntroDB timestamps, not unverified chapter guesses.
+**Current build: 0.0.23 (preview).** Built for Kodi 22, including Android and Fire TV. Device compatibility and detection accuracy still need real-world testing.
 
-> **Release status:** v0.0.23 is a **pre-release candidate**. Offline tests pass, but real-world Kodi 22/Fire TV playback testing is still needed. Please report problems under [Issues](https://github.com/zoeywowy/service.introskip/issues).
+## Install
 
-## Download and install
+**Option 1 — Install from the Kodi repository**
 
-1. Open the [Releases page](https://github.com/zoeywowy/service.introskip/releases).
-2. Download **`service.introskip-0.0.23.zip` from the release Assets** (not GitHub's automatic “Source code” archive).
-3. On Kodi 22, open **Add-ons → Install from zip file**, browse to the ZIP and install it.
-4. Restart Kodi after upgrading. Configure **Detection**, **Skip behavior**, and **Button appearance** in IntroSkip's settings.
+1. In Kodi, go to **Settings → File manager → Add source**.
+2. Enter `https://zoeywowy.github.io/service.introskip/` and name it **IntroSkip**.
+3. Go to **Add-ons → Install from zip file → IntroSkip** and select `repository.introskip-1.0.0.zip`.
+4. Go to **Add-ons → Install from repository → IntroSkip Repository → Services → IntroSkip → Install**.
 
-> A release asset will appear on the Releases page once it is uploaded. Publishing source code alone does not create a Kodi-installable asset.
+**Option 2 — Install directly**
 
-[Detailed installation guide](docs/INSTALLATION.md) · [How detection works](docs/DETECTION.md) · [Settings](docs/SETTINGS.md) · [Troubleshooting](docs/TROUBLESHOOTING.md)
+Download [service.introskip-0.0.23.zip](https://github.com/zoeywowy/service.introskip/releases/download/v0.0.23/service.introskip-0.0.23.zip) and install it using **Add-ons → Install from zip file**. Choose the ZIP under **Release assets**, not GitHub's **Source code** archive.
 
-## Features
+If the repository reports **“Could not connect to repository,”** the direct ZIP may still install. See the [troubleshooting guide](docs/TROUBLESHOOTING.md#repository-wont-connect). Restart Kodi after installation or upgrade.
 
-- **Zero API keys:** searches the public Cinemeta JSON API for IMDb title IDs; no Stremio installation is necessary.
-- **TV and movies:** searches series by show title and movies by title/year where known. Series IDs are combined with season/episode for IntroDB.
-- **IntroDB:** retrieves community-submitted segment timestamps without storing a persistent timestamp cache.
-- **Kodi 22 chapters:** reads explicitly named chapters independently of the network, including adjacent intro markers and end-credit markers.
-- **Safe prompting:** configurable Ask/Auto settings, with conservative handling of chapter-only and post-credit segments.
-- **Button customization:** independent Light/Dark color choices, styles, sizes, on-screen position and preview.
-- **Simplified interface:** no API-key setup, subtitle scraping, diagnostic tools, or manual timestamp editor.
+[Step-by-step installation](docs/INSTALLATION.md) · [Troubleshooting](docs/TROUBLESHOOTING.md)
 
-## Compatibility
+## What IntroSkip does
 
-**Developed for Kodi 22** with Python 3; targeted particularly at Android/Fire TV. Actual compatibility varies by Kodi build, skin and provider. Kodi 21 and older are not the target. Requires Kodi's `xbmc.python` and `script.module.requests` modules (declared in `addon.xml`).
+- **Intros, recaps and credits:** enable the segment types you care about.
+- **IntroDB timestamps:** look for community-provided skip boundaries for a matching show or movie.
+- **Kodi 22 chapters:** use recognizable chapter names when the playing video supplies them, even if online lookups are unavailable.
+- **Cinemeta lookup:** identify a title by name to find its IMDb ID for IntroDB. No Cinemeta account, Stremio installation, or API key is needed.
+- **Ask or Auto:** choose how to handle each segment. Automatic skipping is conservative; chapter-only matches do not auto-skip.
+- **Custom skip buttons:** choose Light or Dark appearance, color, size, position and style, then preview the result.
 
-## How it works
+Not every video has matching data. IntroSkip avoids guessing when identification or skip boundaries are uncertain.
 
-```text
-Playback title + media type + season/episode (provided by playing item)
-  |-- Independent Kodi 22 named chapter detection
-  `-- Cinemeta title search -> verified IMDb ID -> IntroDB timestamps
-                                      |
-                          Skip segments + source priority
-                                      |
-                            On-screen skip button
-```
+## Settings at a glance
 
-Cinemeta is **not** a Kodi add-on. It is a separate public metadata service accessed over HTTPS. Kodi still supplies the basic title and episode information. A strict match policy rejects ambiguous or unrelated search results, rather than trusting the first/highest-ranked result. If Cinemeta or IntroDB is unavailable, chapter detection may still work.
+In **Add-ons → My add-ons → Services → IntroSkip → Configure**:
+
+| Section | What you can change |
+| --- | --- |
+| Detection | Intro, recap, TV credits, movie credits, and detection notices |
+| Skip behavior | Ask or Auto for each segment type |
+| Button appearance | Theme, separate Light/Dark color choices, layout and preview |
+
+**Defaults:** Intro detection is on; recap and credit detection are off. All skip actions start in **Ask** mode.
+
+The current version has **no Advanced tab, OMDb key, subtitle detection, manual timestamp editor, or playback diagnostics button**. It does not use a persistent IMDb or timestamp cache.
+
+[All settings](docs/SETTINGS.md) · [How detection works](docs/DETECTION.md)
+
+## Compatibility and limitations
+
+- Designed for **Kodi 22 with Python 3**; older Kodi versions are not the development target.
+- Requires the Kodi Python runtime and the `script.module.requests` add-on dependency.
+- Kodi chapters depend on what the player and video source expose; IntroDB coverage varies.
+- IntroSkip is an **unofficial** add-on, not a listing in Kodi's official repository.
+- Version 0.0.23 is a **pre-release**: automated tests are not a substitute for testing on a real player.
 
 ## Privacy
 
-The add-on contacts **Cinemeta** and **IntroDB** over HTTPS as needed for identification and skip segments. It does not read subtitle files, store API keys or save IMDb IDs/skip timestamps in a persistent database. Its current playback memory is cleared when playback changes. Kodi logs may contain diagnostic text about title and lookup status.
+IntroSkip sends title-identification requests to Cinemeta and segment requests to IntroDB as needed. It does not inspect subtitles, save a persistent title/timestamp database, or ask for an API key. Kodi logs may include title names and network errors; redact personal information before sharing logs.
 
-## Development and testing
+## For contributors
 
-Source code lives at repository root (`addon.xml`, `service.py`, `main.py`, `resources/`). Tests are in `tests/`. Run the two offline suites in separate Python processes because each provides its own Kodi stubs:
+The add-on lives at the repository root; its core Python code is under `resources/`.
 
 ```bash
 python -m unittest discover -s tests -p 'test_023_integration.py' -v
 python -m unittest discover -s tests -p 'test_023_chapters.py' -v
+python build_zip.py
+python tools/build_kodi_repository.py
 ```
 
-Use `python build_zip.py` to produce a properly rooted Kodi installation ZIP under `dist/`. The `dist` directory is intentionally not committed to source control.
+The first two test suites should be run in **separate processes**. Build output for the service goes to `dist/`; the hosted repository files are generated into `docs/`.
 
-## Releases and feedback
+[Release history](CHANGELOG.md) · [Publishing guide](docs/PUBLISHING.md) · [Contributing](CONTRIBUTING.md) · [Report a problem](https://github.com/zoeywowy/service.introskip/issues/new)
 
-See [Changelog](CHANGELOG.md), [support and issue reporting](docs/TROUBLESHOOTING.md), and [contribution guide](CONTRIBUTING.md). Source updates on GitHub are not the same as inclusion in Kodi's official add-on repository; that requires a separate submission/review.
+## Credits
 
-## Credits and licensing
-
-Based on earlier **SubSkip** work by **drinfernoo**. Metadata services: [Cinemeta](https://v3-cinemeta.strem.io/manifest.json) and [IntroDB](https://introdb.app/). IntroSkip code is presented under **Apache License 2.0**; see [LICENSE](LICENSE). External services and dependencies have their own terms.
+IntroSkip builds on earlier SubSkip work by **drinfernoo**. Data services: [Cinemeta](https://v3-cinemeta.strem.io/manifest.json) and [IntroDB](https://introdb.app/). Licensed under [Apache 2.0](LICENSE). Kodi, Cinemeta and IntroDB are independent projects.
