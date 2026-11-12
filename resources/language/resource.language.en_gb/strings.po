@@ -289,3 +289,11 @@ msgctxt "#32116"
 msgid "[COLOR FF005C64]Teal[/COLOR]"
 msgstr "[COLOR FF005C64]Teal[/COLOR]"
 
+
+msgctxt "#32070"
+msgid "Enable preview detection"
+msgstr "Enable preview detection"
+
+msgctxt "#32071"
+msgid "Preview action"
+msgstr "Preview action"
