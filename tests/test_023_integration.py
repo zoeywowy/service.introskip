@@ -360,6 +360,7 @@ class MultiSourceTests(unittest.TestCase):
             adapter = theintrodb.TheIntroDBAdapter(profile_path=folder)
             calls = []
             class Response:
+                status_code = 200
                 def raise_for_status(self): pass
                 def json(self):
                     return {'type':'movie','credits':[{'start_ms':3000000,'end_ms':None}]}
