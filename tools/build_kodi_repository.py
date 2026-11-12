@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parent.parent
 PUBLIC = ROOT / "docs"
 BASE = "https://zoeywowy.github.io/service.introskip/"
 REPO_ID = "repository.introskip"
-REPO_VERSION = "1.0.0"
+REPO_VERSION = "1.0.1"
 SERVICE_ID = "service.introskip"
 
 
@@ -63,8 +63,6 @@ def main() -> None:
     addon_version = addon_manifest.attrib["version"]
     if addon_id != SERVICE_ID:
         raise SystemExit("Unexpected source add-on ID: " + addon_id)
-    if addon_version != "0.0.23":
-        print("Building new IntroSkip version:", addon_version)
 
     subprocess.run([sys.executable, str(ROOT / "build_zip.py")], check=True, cwd=ROOT)
     service_filename = f"{SERVICE_ID}-{addon_version}.zip"
@@ -89,6 +87,9 @@ def main() -> None:
     repo_filename = f"{REPO_ID}-{REPO_VERSION}.zip"
     repo_dir = PUBLIC / REPO_ID
     repo_dir.mkdir(exist_ok=True)
+    # Kodi expects add-on artwork alongside the hosted ZIP files.
+    shutil.copy2(icon, service_dest_dir / "icon.png")
+    shutil.copy2(icon, repo_dir / "icon.png")
 
     for repo_zip in (PUBLIC / repo_filename, repo_dir / repo_filename):
         with ZipFile(repo_zip, "w", ZIP_DEFLATED) as package:
