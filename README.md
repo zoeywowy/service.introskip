@@ -4,7 +4,7 @@ Skip intros, recaps and credits in Kodi without setting up an API key.
 
 IntroSkip is a small background add-on for TV shows and movies. When it finds a supported segment, it offers a **Skip Intro**, **Skip Recap**, or **Skip Credits** button. You can choose to press the button yourself, or allow certain verified segments to skip automatically.
 
-**Current build: 0.0.23 (preview).** Built for Kodi 22, including Android and Fire TV. Device compatibility and detection accuracy still need real-world testing.
+**Current build: 0.0.24 (preview).** Built for Kodi 22, including Android and Fire TV. Device compatibility and detection accuracy still need real-world testing.
 
 ## Install
 
@@ -12,12 +12,12 @@ IntroSkip is a small background add-on for TV shows and movies. When it finds a 
 
 1. In Kodi, go to **Settings → File manager → Add source**.
 2. Enter `https://zoeywowy.github.io/service.introskip/` and name it **IntroSkip**.
-3. Go to **Add-ons → Install from zip file → IntroSkip** and select `repository.introskip-1.0.0.zip`.
+3. Go to **Add-ons → Install from zip file → IntroSkip** and select `repository.introskip-1.0.1.zip`.
 4. Go to **Add-ons → Install from repository → IntroSkip Repository → Services → IntroSkip → Install**.
 
 **Option 2 — Install directly**
 
-Download [service.introskip-0.0.23.zip](https://github.com/zoeywowy/service.introskip/releases/download/v0.0.23/service.introskip-0.0.23.zip) and install it using **Add-ons → Install from zip file**. Choose the ZIP under **Release assets**, not GitHub's **Source code** archive.
+Download [service.introskip-0.0.24.zip](https://github.com/zoeywowy/service.introskip/releases/download/v0.0.24/service.introskip-0.0.24.zip) and install it using **Add-ons → Install from zip file**. Choose the ZIP under **Release assets**, not GitHub's **Source code** archive.
 
 If the repository reports **“Could not connect to repository,”** the direct ZIP may still install. See the [troubleshooting guide](docs/TROUBLESHOOTING.md#repository-wont-connect). Restart Kodi after installation or upgrade.
 
@@ -56,7 +56,7 @@ The current version has **no Advanced tab, OMDb key, subtitle detection, manual 
 - Requires the Kodi Python runtime and the `script.module.requests` add-on dependency.
 - Kodi chapters depend on what the player and video source expose; IntroDB coverage varies.
 - IntroSkip is an **unofficial** add-on, not a listing in Kodi's official repository.
-- Version 0.0.23 is a **pre-release**: automated tests are not a substitute for testing on a real player.
+- Version 0.0.24 is a **pre-release**: automated tests are not a substitute for testing on a real player.
 
 ## Privacy
 
