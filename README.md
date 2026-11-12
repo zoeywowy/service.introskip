@@ -17,7 +17,7 @@ IntroSkip is a small background add-on for TV shows and movies. When it finds a 
 
 **Option 2 — Install directly**
 
-Download [service.introskip-0.0.24.zip](https://github.com/zoeywowy/service.introskip/releases/download/v0.0.24/service.introskip-0.0.24.zip) and install it using **Add-ons → Install from zip file**. Choose the ZIP under **Release assets**, not GitHub's **Source code** archive.
+Download [service.introskip-0.0.25.zip](https://github.com/zoeywowy/service.introskip/releases/download/v0.0.25/service.introskip-0.0.25.zip) and install it using **Add-ons → Install from zip file**. Choose the ZIP under **Release assets**, not GitHub's **Source code** archive.
 
 The repository installer and package feed now live in the separate [repository.introskip project](https://github.com/zoeywowy/repository.introskip). It follows the standard Kodi/A4K layout: raw GitHub `addons.xml`, a matching `addons.xml.md5`, and versioned ZIPs under `addon.id/addon.id-version.zip` with `datadir zip="true"`. GitHub Pages is used only for the first-install repository ZIP. See the [installation guide](docs/INSTALLATION.md) if you need help.
 
@@ -25,7 +25,7 @@ The repository installer and package feed now live in the separate [repository.i
 
 ## What IntroSkip does
 
-- **Intros, recaps and credits:** enable the segment types you care about.
+- **Intros, recaps, previews and credits:** enable the segment types you care about.
 - **IntroDB open data:** download the complete daily community snapshot once, build a local SQLite index, and check its small manifest at each Kodi launch. The compressed data is refreshed only when the snapshot changes.
 - **IntroDB live API:** retain the single-episode API as a fallback when the local snapshot is not available or does not contain the requested title.
 - **TheIntroDB v4:** query a second independent community source using the IMDb ID and actual playback duration; preserve multiple timestamp ranges and optional preview segments.
