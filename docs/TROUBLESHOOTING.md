@@ -1,15 +1,21 @@
 # Troubleshooting IntroSkip
 
-## Repository won't connect
+## Repository ZIP browser is empty
 
-If Kodi says **“Could not connect to repository,”** it is failing to read the repository feed. That does not, by itself, mean the IntroSkip service is broken.
+If Kodi's **Install from zip file** browser shows only `..` and `0 items`, you have opened the GitHub Pages download webpage as though it were a folder. Kodi cannot browse the download button inside that HTML page.
 
-The repository installer now lives in a separate project and follows the standard Kodi/A4K layout.
+1. Cancel the empty browser.
+2. Open the [IntroSkip download page](https://zoeywowy.github.io/repository.introskip/) in a normal browser.
+3. Download `repository.introskip-1.0.4.zip`. Do not extract it.
+4. In Kodi, open **Add-ons → Install from zip file** and browse to the ZIP in Downloads, USB storage or a network share.
 
-1. In Kodi, open **Settings → File manager → Add source**.
-2. Enter `https://zoeywowy.github.io/repository.introskip/` and name the source **IntroSkip Repository**.
-3. Open **Add-ons → Install from zip file → IntroSkip Repository** and install `repository.introskip-1.0.4.zip`.
-4. Open **Install from repository → IntroSkip Repository → Services → IntroSkip**.
+Do not add `https://zoeywowy.github.io/repository.introskip/` as a Kodi File Manager source.
+
+## Repository won't connect after installation
+
+If Kodi says **“Could not connect to repository”** after the repository ZIP has installed, it is failing to read the repository feed. That does not, by itself, mean the IntroSkip service is broken.
+
+The repository installer lives in a separate project and follows the standard Kodi/A4K layout.
 
 Check that these public files open in a browser:
 
