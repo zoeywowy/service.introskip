@@ -86,6 +86,7 @@ jobs:
           git add -f docs/repository.introskip-1.0.1.zip docs/repository.introskip/ docs/service.introskip/
           if ! git diff --cached --quiet; then
             git commit -m "build: publish Kodi repository index and installer ZIPs"
+            git pull --rebase origin main
             git push origin HEAD:main
           fi
 
