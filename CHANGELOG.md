@@ -1,5 +1,17 @@
 # IntroSkip — Release Notes
 
+## v0.0.24 — Kodi 22 installation compatibility
+**12 November 2026 · Pre-release**
+
+- Corrected the minimum `xbmc.python` requirement from **3.1.1** to **3.1.0**, matching Kodi 22's published Python add-on manifest.
+- Declared a minimum `script.module.requests` version and added clearer add-on metadata.
+- Updated the Kodi repository installer to **1.0.1** and included artwork alongside the hosted ZIPs.
+- Rewrote installation, troubleshooting and contributor documentation for the current build.
+- Cinemeta, IntroDB, native chapter detection, Ask/Auto behavior and button appearance are unchanged.
+- The repository connection problem still needs real-device confirmation: a browser displaying `addons.xml` does not prove Kodi can access or parse it.
+
+---
+
 A Kodi 22 skip-button service with **Cinemeta + IntroDB + native chapters**, readable theme palettes and minimal settings.
 
 ---
