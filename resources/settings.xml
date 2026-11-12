@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings>
+    <!-- Kodi 22 chapters and IntroDB are always enabled. Users control segment types. -->
+    <category label="32000">
+        <setting id="general.use_intro" label="32069" type="bool" default="true" />
+        <setting id="general.use_recap" label="32025" type="bool" default="false" />
+        <setting id="general.use_outro" label="32016" type="bool" default="false" />
+        <setting id="general.use_movie_credits" label="32026" type="bool" default="false" />
+        <setting id="general.show_notifications" label="32008" type="bool" default="true" />
+    </category>
+    <category label="32027">
+        <setting id="skip.intro_mode" label="32028" type="enum" lvalues="32029|32030" default="0" />
+        <setting id="skip.recap_mode" label="32031" type="enum" lvalues="32029|32030" default="0" />
+        <setting id="skip.outro_mode" label="32032" type="enum" lvalues="32029|32030" default="0" />
+        <setting id="skip.movie_outro_mode" label="32033" type="enum" lvalues="32029|32030" default="0" />
+    </category>
+    <category label="32014">
+        <setting id="customize.theme" label="32001" type="labelenum" lvalues="32002|32003" default="Dark" />
+        <!-- Each button theme keeps its own selected color; text is colorized in the settings UI. -->
+        <setting id="customize.button_color" label="32005" type="enum" lvalues="32100|32101|32102|32103|32104|32105|32106" default="0" visible="!eq(-1,Light)" />
+        <setting id="customize.button_color_light" label="32005" type="enum" lvalues="32110|32111|32112|32113|32114|32115|32116" default="0" visible="eq(-2,Light)" />
+        <setting id="customize.position" label="32034" type="enum" lvalues="32035|32036|32037|32038" default="0" />
+        <setting id="customize.size" label="32039" type="enum" lvalues="32040|32041|32042" default="1" />
+        <setting id="customize.style" label="32043" type="enum" lvalues="32044|32045|32046" default="0" />
+        <setting id="customize.contents" label="32053" type="enum" lvalues="32054|32055|32056" default="0" />
+        <setting id="customize.preview" label="32058" type="action" option="close" action="RunScript(service.introskip,action=preview_button)" />
+        <setting id="customize.reset_button_layout" label="32059" type="action" action="RunScript(service.introskip,action=reset_button_layout)" />
+    </category>
+</settings>

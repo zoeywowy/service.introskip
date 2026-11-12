@@ -1,15 +1,14 @@
 ---
 name: Feature request
-about: Propose an IntroSkip improvement
-title: "[Feature] "
+about: Suggest a focused Kodi 22 feature
+title: '[Feature] '
 labels: enhancement
-assignees: ""
 ---
 
-**Problem this would solve:**
+**Problem to solve:**
 
-**Desired behavior:**
+**Suggested behavior:**
 
-**Kodi / device context:**
+**Why it would help:**
 
-**Alternative approaches considered:**
+**Kodi version / playback source:**

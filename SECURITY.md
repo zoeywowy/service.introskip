@@ -1,7 +1,5 @@
-# Security policy
+# Security
 
-Please do not include credentials, private URLs, tokens or identifying data in public issues. Kodi logs may reveal streamed media URLs; redact them before sharing.
+Please **do not post** API keys, Kodi logs containing personal information, private playback URLs, or authentication tokens in public GitHub issues. Redact logs first. For a sensitive security issue, contact the repository owner through GitHub privately before public disclosure.
 
-For reproducible non-sensitive bugs, use [GitHub Issues](https://github.com/zoeywowy/service.introskip/issues). For sensitive vulnerabilities, use GitHub's **Private vulnerability reporting** feature if enabled for the repository; otherwise contact the maintainer privately rather than publishing exploit details.
-
-Third-party metadata services (Cinemeta and IntroDB) may observe standard HTTPS requests. IntroSkip does not require API keys for its configured sources.
+This service makes HTTPS requests to Cinemeta and IntroDB; their uptime, data quality and privacy policies are outside IntroSkip's control.

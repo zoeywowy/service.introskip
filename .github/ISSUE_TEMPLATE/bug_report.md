@@ -1,25 +1,22 @@
 ---
 name: Bug report
-about: Report broken ID resolution, detection, chapters or skip UI
-title: "[Bug] "
+about: Report an IntroSkip problem on Kodi 22
+title: '[Bug] '
 labels: bug
-assignees: ""
 ---
 
-**Kodi version / build:**
-
-**Device / operating system:**
+**Kodi version / device:**
 
 **IntroSkip version:**
 
-**Source provider / stream type:**
+**Media type, title, season/episode if relevant:**
 
-**TV series + season/episode or movie + year:**
+**Expected behavior:**
 
-**What happened?**
-
-**What did you expect?**
+**Actual behavior:**
 
 **Steps to reproduce:**
 
-**Relevant redacted logs (remove streaming URLs and credentials):**
+**Redacted log snippet (optional):**
+
+> Never paste private stream URLs, usernames, passwords or tokens.

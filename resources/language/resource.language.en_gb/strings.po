@@ -1,0 +1,291 @@
+# Kodi Media Center language file
+# Addon Name: Intro Skip
+# Addon id: service.introskip
+# Addon Provider: zoeywowy
+msgid ""
+msgstr ""
+"Project-Id-Version: XBMC Addons\n"
+"Report-Msgid-Bugs-To: alanwww1@xbmc.org\n"
+"POT-Creation-Date: 2026-11-12 08:00+0000\n"
+"PO-Revision-Date: 2026-11-12 08:00+0000\n"
+"Last-Translator: Kodi Translation Team\n"
+"Language-Team: English (http://www.transifex.com/projects/p/xbmc-addons/language/en/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+# Localization strings for IntroSkip
+
+msgctxt "#32000"
+msgid "Detection"
+msgstr "Detection"
+
+msgctxt "#32001"
+msgid "Button theme"
+msgstr "Button theme"
+
+msgctxt "#32002"
+msgid "Light"
+msgstr ""
+
+msgctxt "#32003"
+msgid "Dark"
+msgstr ""
+
+msgctxt "#32005"
+msgid "Button color"
+msgstr "Button color"
+
+msgctxt "#32006"
+msgid "Choose a button color"
+msgstr "Choose a button color"
+
+msgctxt "#32007"
+msgid "Use IntroDB"
+msgstr ""
+
+msgctxt "#32008"
+msgid "Show detection notifications"
+msgstr ""
+
+msgctxt "#32009"
+msgid "No intro data found in IntroDB"
+msgstr ""
+
+msgctxt "#32014"
+msgid "Button appearance"
+msgstr "Button appearance"
+
+msgctxt "#32016"
+msgid "Enable outro detection"
+msgstr ""
+
+msgctxt "#32017"
+msgid "Outro detected, click to skip to next episode"
+msgstr ""
+
+msgctxt "#32018"
+msgid "Checking IntroDB for intro timestamps..."
+msgstr ""
+
+msgctxt "#32019"
+msgid "Checking for chapter markers..."
+msgstr ""
+
+msgctxt "#32020"
+msgid "✓ Intro detected from chapter markers!"
+msgstr ""
+
+msgctxt "#32021"
+msgid "No chapter markers found"
+msgstr ""
+
+msgctxt "#32025"
+msgid "Enable recap detection"
+msgstr "Enable recap detection"
+
+msgctxt "#32026"
+msgid "Enable movie credits detection"
+msgstr "Enable movie credits detection"
+
+msgctxt "#32027"
+msgid "Skip behavior"
+msgstr "Skip behavior"
+
+msgctxt "#32028"
+msgid "Intro action"
+msgstr "Intro action"
+
+msgctxt "#32029"
+msgid "Show skip button"
+msgstr "Show skip button"
+
+msgctxt "#32030"
+msgid "Auto-skip IntroDB timestamps (source edits may vary)"
+msgstr "Auto-skip IntroDB timestamps (source edits may vary)"
+
+msgctxt "#32031"
+msgid "Recap action"
+msgstr "Recap action"
+
+msgctxt "#32032"
+msgid "TV credits action"
+msgstr "TV credits action"
+
+msgctxt "#32033"
+msgid "Movie credits action"
+msgstr "Movie credits action"
+
+msgctxt "#32034"
+msgid "Button position"
+msgstr "Button position"
+
+msgctxt "#32035"
+msgid "Bottom right"
+msgstr "Bottom right"
+
+msgctxt "#32036"
+msgid "Bottom left"
+msgstr "Bottom left"
+
+msgctxt "#32037"
+msgid "Top right"
+msgstr "Top right"
+
+msgctxt "#32038"
+msgid "Top left"
+msgstr "Top left"
+
+msgctxt "#32039"
+msgid "Button size"
+msgstr "Button size"
+
+msgctxt "#32040"
+msgid "Small"
+msgstr "Small"
+
+msgctxt "#32041"
+msgid "Normal"
+msgstr "Normal"
+
+msgctxt "#32042"
+msgid "Large"
+msgstr "Large"
+
+msgctxt "#32043"
+msgid "Button style"
+msgstr "Button style"
+
+msgctxt "#32044"
+msgid "Pill"
+msgstr "Pill"
+
+msgctxt "#32045"
+msgid "Soft corner"
+msgstr "Soft corner"
+
+msgctxt "#32046"
+msgid "Flat bar"
+msgstr "Flat bar"
+
+
+
+
+
+
+
+msgctxt "#32053"
+msgid "Button contents"
+msgstr "Button contents"
+
+msgctxt "#32054"
+msgid "Icon and text"
+msgstr "Icon and text"
+
+msgctxt "#32055"
+msgid "Text only"
+msgstr "Text only"
+
+msgctxt "#32056"
+msgid "Icon only"
+msgstr "Icon only"
+
+
+msgctxt "#32058"
+msgid "Preview button (OK or Back to close)"
+msgstr "Preview button (OK or Back to close)"
+
+msgctxt "#32059"
+msgid "Reset button appearance to defaults"
+msgstr "Reset button appearance to defaults"
+
+msgctxt "#32062"
+msgid "Default"
+msgstr "Default"
+
+msgctxt "#32063"
+msgid "Blue"
+msgstr "Blue"
+
+msgctxt "#32064"
+msgid "Green"
+msgstr "Green"
+
+msgctxt "#32065"
+msgid "Gold"
+msgstr "Gold"
+
+msgctxt "#32066"
+msgid "Red"
+msgstr "Red"
+
+msgctxt "#32067"
+msgid "Purple"
+msgstr "Purple"
+
+msgctxt "#32068"
+msgid "Teal"
+msgstr "Teal"
+
+msgctxt "#32069"
+msgid "Enable intro detection"
+msgstr "Enable intro detection"
+
+msgctxt "#32100"
+msgid "[COLOR FFF8FAFC]Default[/COLOR]"
+msgstr "[COLOR FFF8FAFC]Default[/COLOR]"
+
+msgctxt "#32101"
+msgid "[COLOR FFA5D8FF]Blue[/COLOR]"
+msgstr "[COLOR FFA5D8FF]Blue[/COLOR]"
+
+msgctxt "#32102"
+msgid "[COLOR FFB6F0CB]Green[/COLOR]"
+msgstr "[COLOR FFB6F0CB]Green[/COLOR]"
+
+msgctxt "#32103"
+msgid "[COLOR FFFFE08A]Gold[/COLOR]"
+msgstr "[COLOR FFFFE08A]Gold[/COLOR]"
+
+msgctxt "#32104"
+msgid "[COLOR FFFFADB5]Red[/COLOR]"
+msgstr "[COLOR FFFFADB5]Red[/COLOR]"
+
+msgctxt "#32105"
+msgid "[COLOR FFD9B8FF]Purple[/COLOR]"
+msgstr "[COLOR FFD9B8FF]Purple[/COLOR]"
+
+msgctxt "#32106"
+msgid "[COLOR FFA4E8E4]Teal[/COLOR]"
+msgstr "[COLOR FFA4E8E4]Teal[/COLOR]"
+
+msgctxt "#32110"
+msgid "[COLOR FF18212C]Default[/COLOR]"
+msgstr "[COLOR FF18212C]Default[/COLOR]"
+
+msgctxt "#32111"
+msgid "[COLOR FF174A8B]Blue[/COLOR]"
+msgstr "[COLOR FF174A8B]Blue[/COLOR]"
+
+msgctxt "#32112"
+msgid "[COLOR FF15603D]Green[/COLOR]"
+msgstr "[COLOR FF15603D]Green[/COLOR]"
+
+msgctxt "#32113"
+msgid "[COLOR FF7B4700]Gold[/COLOR]"
+msgstr "[COLOR FF7B4700]Gold[/COLOR]"
+
+msgctxt "#32114"
+msgid "[COLOR FF9F2330]Red[/COLOR]"
+msgstr "[COLOR FF9F2330]Red[/COLOR]"
+
+msgctxt "#32115"
+msgid "[COLOR FF5F358C]Purple[/COLOR]"
+msgstr "[COLOR FF5F358C]Purple[/COLOR]"
+
+msgctxt "#32116"
+msgid "[COLOR FF005C64]Teal[/COLOR]"
+msgstr "[COLOR FF005C64]Teal[/COLOR]"
+

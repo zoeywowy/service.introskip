@@ -1,26 +1,32 @@
 # Troubleshooting and support
 
-## No Skip button
-Confirm the title is playing and its Detection option is enabled. If the stream has no recognizable title/season/episode, Cinemeta may not find the right show. Try a title with a known release year or a TV episode with properly exposed season/episode metadata. Some content has no IntroDB segments and no named chapters.
+## No skip button
 
-## Cinemeta cannot find an ID
-Cinemeta is an external service. A network error, unusual title/translation, incorrect movie year or ambiguous search match can prevent safe identification. IntroSkip deliberately rejects uncertain results instead of using a possibly incorrect IMDb ID. No API key is needed.
+- Check that the relevant segment type is enabled under **Detection**.
+- Some media does not have verified IntroDB timestamps or explicitly named Kodi chapters. IntroSkip intentionally does not invent timestamps.
+- Cinemeta must find an unambiguous IMDb title match. Unusual titles, remakes, missing movie years or limited player metadata can prevent resolution.
+- Try a different episode or movie with clearly named chapters. External services can be unavailable.
+- Set the action to **Ask** while verifying playback.
 
-## Chapters do not appear
-Only Kodi 22 named chapter support is targeted. Some streams have no chapters or only generic chapter numbers. Kodi builds and player/provider integrations may vary.
+## The skip boundary is inaccurate
 
-## Skip buttons are hard to read
-Open Button appearance, switch Light/Dark theme and choose its independent color palette. Use the preview. Check button position if a skin overlays controls.
+IntroDB timestamps may be based on a different edit/cut of the content. Kodi 22 explicit local chapters are preferred when available. Report the title, season/episode and approximate time mismatch; don't include video streaming URLs or account credentials.
 
-## Buttons skip too far
-Try **Ask** instead of **Auto**. Report the show/movie, episode and observed start/end timestamps. Do not assume all credits are safe to skip if post-credit scenes may exist.
+## Settings and UI
 
-## Filing a bug
-Use [GitHub Issues](https://github.com/zoeywowy/service.introskip/issues). Include:
-- Kodi version/build, OS and device (e.g. Fire TV)
-- IntroSkip version
-- Streaming add-on/provider, title, season/episode or movie year
-- Exact steps to reproduce and expected/actual result
-- Relevant **redacted** Kodi log lines
+If buttons overlap your video controls, adjust Button appearance → position/size and use Preview. Test Light/Dark with your skin.
 
-Remove personal tokens, private streaming URLs, credentials, IP addresses and identifying information before uploading logs.
+## Bug report
+
+Open an [Issue](https://github.com/zoeywowy/service.introskip/issues/new) and include:
+
+- Kodi exact version/build and operating system/device.
+- IntroSkip version (for example 0.0.23).
+- Whether the problem involves Cinemeta lookup, IntroDB, Kodi chapters, or button display.
+- Example movie/show title and season/episode (but **not** a private stream URL).
+- Expected vs actual result and steps to reproduce.
+- Relevant `kodi.log` lines with usernames, tokens, stream URLs, and personal information removed.
+
+## Current testing status
+
+Unit tests use mocked Kodi APIs. Live device/provider compatibility has **not** yet been independently verified for 0.0.23.

@@ -1,13 +1,21 @@
-# Settings reference
+# Settings guide (v0.0.23)
 
-### Detection
-Choose whether IntroSkip should show prompts for intros, recaps, outros and movie credits. Detection notifications are configured here. Detection sources are automatic: Cinemeta/IntroDB over HTTPS and Kodi 22 named chapters independently.
+## Detection
 
-### Skip behavior
-**Ask** shows the skip button and lets you decide. **Auto** is limited to qualifying IntroDB ranges; chapter-only detections are not treated as confirmed timestamps for automatic skipping.
+- Enable introduction detection (enabled initially).
+- Enable previously-on recap detection.
+- Enable TV outro/credits detection.
+- Enable movie-credits detection.
+- Show or hide detection notifications.
 
-### Button appearance
-Choose style, size, theme and position. Light and Dark themes have separate text-color options to preserve contrast against their backgrounds. Use the preview to test readability with your current Kodi skin.
+## Skip behavior
 
-### Removed settings
-0.0.23 has no Advanced diagnostics tab, OMDb API key entry, TVDB dependencies, subtitle scanning or manual timestamp editor.
+Choose **Ask** (the default) or **Auto** separately for intro, recap, TV outro, and movie credits. Auto is restricted by safety policy and evidence source; a source-local chapter alone will not automatically skip content.
+
+## Button appearance
+
+Choose **Light** or **Dark** theme with its own independent palette. Select position, size, pill/soft/flat style, and contents. Use **Preview button** to check visibility with your skin. **Reset layout** restores the default placement.
+
+## Removed settings
+
+The Advanced tab, chapter-inspector action, playback-diagnostics action, OMDb API key, separate detection source switches, subtitle learning, and manual timestamps are not part of 0.0.23.

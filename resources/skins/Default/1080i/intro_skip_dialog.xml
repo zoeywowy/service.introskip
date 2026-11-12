@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<window id="13000">
+    <!-- All visible controls are created at final size and position in onInit.
+         Never show the previous centered placeholder that flashed before init. -->
+    <controls />
+</window>
