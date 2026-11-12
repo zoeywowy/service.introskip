@@ -62,13 +62,19 @@ jobs:
           assert ids == {"service.introskip", "repository.introskip"}, ids
           assert (docs / "addons.xml.md5").read_text() == hashlib.md5(data).hexdigest()
           for name, root_file in [
-              ("repository.introskip-1.0.0.zip", "repository.introskip/addon.xml"),
-              ("service.introskip/service.introskip-0.0.23.zip", "service.introskip/addon.xml"),
+              ("repository.introskip-1.0.1.zip", "repository.introskip/addon.xml"),
+              ("service.introskip/service.introskip-0.0.24.zip", "service.introskip/addon.xml"),
           ]:
               with ZipFile(docs / name) as z:
                   assert z.testzip() is None
                   assert root_file in z.namelist()
           assert (docs / "index.html").is_file()
+          for addon_id in ("repository.introskip", "service.introskip"):
+              assert (docs / addon_id / "icon.png").is_file()
+          service = next(a for a in index if a.get("id") == "service.introskip")
+          deps = {d.get("addon"): d.get("version") for d in service.findall("./requires/import")}
+          assert deps["xbmc.python"] == "3.1.0", deps
+          assert deps.get("script.module.requests"), deps
           print("Kodi repository index and both installer ZIPs verified")
           PY
 
@@ -77,7 +83,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -f docs/.nojekyll docs/index.html docs/addons.xml docs/addons.xml.md5
-          git add -f docs/repository.introskip-1.0.0.zip docs/repository.introskip/ docs/service.introskip/
+          git add -f docs/repository.introskip-1.0.1.zip docs/repository.introskip/ docs/service.introskip/
           if ! git diff --cached --quiet; then
             git commit -m "build: publish Kodi repository index and installer ZIPs"
             git push origin HEAD:main
