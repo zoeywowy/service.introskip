@@ -584,7 +584,7 @@ class Player(xbmc.Player):
         """Release UI resources and cancel all background work without waiting."""
         self._shutdown_event.set()
         try:
-            self.identifier.introdb_open_data.cancel_sync()
+            self.identifier.cancel_background_work()
         except Exception:
             pass
         with self._state_lock:
