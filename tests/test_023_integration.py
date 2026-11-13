@@ -135,7 +135,9 @@ class PackageTests(unittest.TestCase):
                                 'general.use_outro':True,'general.use_movie_credits':True})
     def test_manifest_version_and_dependencies(self):
         root=ET.parse(BASE/'addon.xml').getroot()
-        self.assertRegex(root.attrib['version'], r'^\\d+\\.\\d+\\.\\d+
+        version_parts = root.attrib['version'].split('.')
+        self.assertEqual(len(version_parts), 3)
+        self.assertTrue(all(part.isdigit() for part in version_parts))
         deps=[item.attrib['addon'] for item in root.findall('requires/import')]
         self.assertEqual(deps,['xbmc.python','script.module.requests'])
     def test_settings_no_advanced_or_diagnostics(self):
