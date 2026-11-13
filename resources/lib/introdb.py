@@ -4,10 +4,8 @@
 import math
 from datetime import time
 
-import requests
-
 from resources.lib.adapter import PointsAdapter
-from resources.lib import tools
+from resources.lib import http_client, tools
 
 
 class IntroDBAdapter(PointsAdapter):
@@ -37,11 +35,9 @@ class IntroDBAdapter(PointsAdapter):
         if not imdb_id.startswith('tt') or not imdb_id[2:].isdigit():
             return None
         try:
-            response = requests.get(self.BASE_URL, params={
+            data = http_client.get_json(self.BASE_URL, params={
                 'imdb_id': imdb_id, 'is_movie': 'true'}, timeout=self.timeout)
-            response.raise_for_status()
-            data = response.json()
-        except (requests.exceptions.RequestException, ValueError, TypeError) as exc:
+        except (http_client.HTTPError, ValueError, TypeError) as exc:
             tools.log('IntroDB movie lookup failed: {}'.format(exc), 'warning')
             return None
         return data if isinstance(data, dict) else None
@@ -139,9 +135,7 @@ class IntroDBAdapter(PointsAdapter):
             "episode": episode,
         }
         try:
-            response = requests.get(self.BASE_URL, params=params, timeout=self.timeout)
-            response.raise_for_status()
-            data = response.json()
+            data = http_client.get_json(self.BASE_URL, params=params, timeout=self.timeout)
         except requests.exceptions.RequestException as exc:
             tools.log("IntroDB request failed: {}".format(exc), "warning")
             return None
