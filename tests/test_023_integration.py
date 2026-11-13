@@ -276,6 +276,22 @@ class HTTPClientTests(unittest.TestCase):
             http_client.urlopen = old
 
 
+class DatabaseShutdownTests(unittest.TestCase):
+    def test_cancel_interrupts_in_progress_sqlite_operation(self):
+        class FakeSQLiteConnection:
+            def __init__(self):
+                self.interrupted = False
+            def interrupt(self):
+                self.interrupted = True
+        with tempfile.TemporaryDirectory() as folder:
+            adapter = IntroDBOpenDataAdapter(profile_path=folder)
+            connection = FakeSQLiteConnection()
+            adapter._active_db = connection
+            adapter.cancel_sync()
+            self.assertTrue(adapter._cancel_event.is_set())
+            self.assertTrue(connection.interrupted)
+
+
 class PackageTests(unittest.TestCase):
     def setUp(self):
         settings_values.update({'customize.theme':'Dark', 'customize.size':'1',
