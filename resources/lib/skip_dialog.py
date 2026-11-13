@@ -39,6 +39,23 @@ class IntroSkipDialog(xbmcgui.WindowXMLDialog):
         self._button=None
         self._icon=None
         self._button_id=None
+        self._is_open=False
+
+    def show(self):
+        """Track the modeless dialog so shutdown never closes an unopened window."""
+        self._is_open = True
+        try:
+            return super().show()
+        except Exception:
+            self._is_open = False
+            raise
+
+    def close(self):
+        """Close only a dialog that IntroSkip actually opened."""
+        if not self._is_open:
+            return
+        self._is_open = False
+        return super().close()
 
     def configure(self, segment_type, skip_time, skip_start=None):
         self.segment_type=segment_type if segment_type in SEGMENT_LABELS else 'intro'
