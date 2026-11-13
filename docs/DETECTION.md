@@ -12,7 +12,7 @@ IntroSkip does not use OMDb, Kodi library-ID searches or provider API keys.
 
 IntroDB publishes a daily open-data snapshot containing live segment timestamps and confirmed segmentless entries.
 
-To keep low-power devices responsive, the full snapshot refresh is deferred until Kodi has been idle without video playback for two minutes. Downloads stream to disk, are checksum-verified and are processed in small batches. The local SQLite index is built in a background worker and atomically replaced only after validation. A refresh is cancelled when playback starts or Kodi shuts down. If the snapshot is not ready, the single-item IntroDB API fallback remains available.
+To keep low-power devices responsive, the full snapshot refresh is deferred until Kodi has had no video playback and no remote or keyboard input for two minutes. Downloads stream to disk, are checksum-verified and are processed in small batches. The local SQLite index is built in a background worker and atomically replaced only after validation. A refresh is cancelled when playback starts or Kodi shuts down. If the snapshot is not ready, the single-item IntroDB API fallback remains available.
 
 When a title is playing, its IMDb ID and episode coordinates are looked up locally. The single-item IntroDB API is the fallback when the snapshot is unavailable or has no record for that item.
 
