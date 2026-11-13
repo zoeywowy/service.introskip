@@ -9,9 +9,7 @@ import re
 import unicodedata
 from urllib.parse import quote
 
-import requests
-
-from resources.lib import tools
+from resources.lib import http_client, tools
 
 BASE_URL = 'https://v3-cinemeta.strem.io'
 IMDB = re.compile(r'tt\d{7,10}\Z', flags=re.I)
@@ -106,10 +104,8 @@ def lookup_imdb(title, media_type, year=None, timeout=5):
     url = '{}/catalog/{}/top/search={}.json'.format(BASE_URL, kind, quote(title, safe=''))
     try:
         tools.log('Cinemeta searching {} title {!r}'.format(kind, title), 'info')
-        response = requests.get(url, timeout=timeout, headers={'Accept': 'application/json'})
-        response.raise_for_status()
-        payload = response.json()
-    except (requests.exceptions.RequestException, ValueError, TypeError) as exc:
+        payload = http_client.get_json(url, timeout=timeout, headers={'Accept': 'application/json'})
+    except (http_client.HTTPError, ValueError, TypeError) as exc:
         tools.log('Cinemeta lookup failed ({})'.format(type(exc).__name__), 'warning')
         return None
     imdb = _verified_candidates(payload, title, kind, year)
