@@ -1,5 +1,16 @@
 # IntroSkip release notes
 
+## 0.0.30 — Kodi update and uninstall lifecycle
+
+**13 November 2026 · Kodi 22 pre-release**
+
+- Instantiate Kodi's native skip-dialog window only when a skip prompt is actually shown, not at service startup or playback metadata initialization.
+- On service shutdown, close the dialog and break its native Python/C++ reference cycle.
+- Track playback lookup threads and request cancellation before Kodi's five-second shutdown deadline.
+- Interrupt ongoing SQLite snapshot validation and index operations if Kodi disables, updates or stops IntroSkip.
+- Add regression tests for idle service initialization, dialog teardown, worker cancellation and SQLite interruption.
+- Preserve all IntroDB, TheIntroDB, native chapter and per-segment Ask/Auto detection features.
+
 ## 0.0.29 — Prompt shutdown on every device
 
 **13 November 2026 · Kodi 22 pre-release**
