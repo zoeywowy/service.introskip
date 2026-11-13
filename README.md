@@ -49,7 +49,7 @@ Defaults: intro detection is on; other segment types are off. All actions defaul
 ## Compatibility
 
 - Designed for **Kodi 22 (Piers)** and its **Python 3.14** runtime.
-- Requires Kodi's Python add-on interface and `script.module.requests`.
+- Uses Kodi's Python add-on interface and Python's standard library; no third-party Python add-ons are required.
 - Chapter detection depends on the chapter information exposed by the actual video source.
 - IntroSkip is a third-party add-on, not part of Kodi's official repository.
 
