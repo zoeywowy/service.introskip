@@ -106,7 +106,7 @@ jobs:
           This is a pre-release pending real-device testing; please report problems under GitHub Issues.
           EOF
           if gh release view "v${VERSION}" >/dev/null 2>&1; then
-            gh release upload "v${VERSION}" "${ZIP_PATH}" --clobber
-          else
-            gh release create "v${VERSION}" "${ZIP_PATH}" --title "IntroSkip v${VERSION} — Kodi 22" --notes-file /tmp/introskip-release.md --prerelease --target main
+            echo "::warning::Release v${VERSION} already exists. Published release assets are immutable; increment addon.xml before publishing new code."
+            exit 0
           fi
+          gh release create "v${VERSION}" "${ZIP_PATH}" --title "IntroSkip v${VERSION} — Kodi 22" --notes-file /tmp/introskip-release.md --prerelease --target main
