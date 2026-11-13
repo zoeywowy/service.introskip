@@ -1,5 +1,12 @@
 # IntroSkip release notes
 
+## 0.0.28 — UI-idle sync guard
+
+**12 November 2026 · Kodi 22 pre-release**
+
+- Require both no active video playback and two minutes without Kodi remote or keyboard input before starting the bulk IntroDB refresh.
+- Avoid starting background imports while users are navigating Kodi settings or menus.
+
 ## 0.0.27 — Low-resource installation and shutdown
 
 **12 November 2026 · Kodi 22 pre-release**
