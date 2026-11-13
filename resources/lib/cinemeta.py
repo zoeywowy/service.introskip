@@ -91,7 +91,7 @@ def _verified_candidates(payload, title, kind, year=None):
     return winners[0] if len(winners) == 1 else None
 
 
-def lookup_imdb(title, media_type, year=None, timeout=5):
+def lookup_imdb(title, media_type, year=None, timeout=3):
     """Search a series or film title, return a verified IMDb ID or None.
 
     TV lookup is *series-level*; the caller supplies season/episode to IntroDB.
