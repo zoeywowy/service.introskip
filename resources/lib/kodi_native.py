@@ -6,6 +6,7 @@ chapter-related notifications, off the callback thread. Periodic chapter
 probes remain the fallback for sources that do not send notifications.
 """
 import json
+import threading
 
 import xbmc
 
@@ -16,6 +17,7 @@ class KodiNativeMonitor(xbmc.Monitor):
     def __init__(self):
         super().__init__()
         self._pending = set()
+        self._pending_lock = threading.Lock()
 
     def onNotification(self, sender, method, data):
         if method != 'Player.OnPropertyChanged':
@@ -36,9 +38,11 @@ class KodiNativeMonitor(xbmc.Monitor):
         else:
             return
         if any('chapter' in key for key in keys):
-            self._pending.add('chapters')
+            with self._pending_lock:
+                self._pending.add('chapters')
 
     def take_changes(self):
-        changes = set(self._pending)
-        self._pending.clear()
-        return changes
+        with self._pending_lock:
+            changes = set(self._pending)
+            self._pending.clear()
+            return changes
