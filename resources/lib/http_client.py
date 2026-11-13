@@ -38,7 +38,7 @@ def _url_with_params(url, params):
     return "{}{}{}".format(url, "&" if "?" in url else "?", query)
 
 
-def _open(url, params=None, timeout=5, headers=None):
+def _open(url, params=None, timeout=3, headers=None):
     url = _url_with_params(url, params)
     request_headers = {"User-Agent": "IntroSkip Kodi add-on"}
     if headers:
@@ -53,19 +53,19 @@ def _open(url, params=None, timeout=5, headers=None):
         raise HTTPTransportError(str(reason)) from exc
 
 
-def get_bytes(url, params=None, timeout=5, headers=None):
+def get_bytes(url, params=None, timeout=3, headers=None):
     """Fetch a small response body, such as a manifest or compressed API JSON."""
     with _open(url, params=params, timeout=timeout, headers=headers) as response:
         return response.read()
 
 
-def get_json(url, params=None, timeout=5, headers=None):
+def get_json(url, params=None, timeout=3, headers=None):
     """Fetch and decode a UTF-8 JSON response."""
     payload = get_bytes(url, params=params, timeout=timeout, headers=headers)
     return json.loads(payload.decode("utf-8-sig"))
 
 
-def download_to_file(url, destination, timeout=15, cancel_event=None, chunk_size=65536):
+def download_to_file(url, destination, timeout=3, cancel_event=None, chunk_size=65536):
     """Stream a response to disk and return (bytes_written, sha256_hex)."""
     digest = hashlib.sha256()
     total = 0
