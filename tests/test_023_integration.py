@@ -1,4 +1,4 @@
-"""Offline Kodi 22 integration and multi-source tests for 0.0.25."""
+"""Offline Kodi 22 integration, performance and multi-source tests."""
 import os
 import sys
 import types
@@ -139,7 +139,7 @@ class PackageTests(unittest.TestCase):
         self.assertEqual(len(version_parts), 3)
         self.assertTrue(all(part.isdigit() for part in version_parts))
         deps=[item.attrib['addon'] for item in root.findall('requires/import')]
-        self.assertEqual(deps,['xbmc.python','script.module.requests'])
+        self.assertEqual(deps,['xbmc.python'])
     def test_settings_no_advanced_or_diagnostics(self):
         root=ET.parse(BASE/'resources/settings.xml').getroot()
         cats=root.findall('category')
@@ -206,17 +206,14 @@ class PackageTests(unittest.TestCase):
 
 class CinemetaTests(unittest.TestCase):
     def setUp(self):
-        self.orig=cinemeta.requests.get
+        self.orig=cinemeta.http_client.get_json
         self.calls=[]
-    def tearDown(self):cinemeta.requests.get=self.orig
+    def tearDown(self):cinemeta.http_client.get_json=self.orig
     def mock(self,metas):
-        class Resp:
-            def raise_for_status(self):pass
-            def json(self):return {'metas':metas}
-        def getter(url,timeout=None,headers=None):
+        def getter(url,params=None,timeout=None,headers=None):
             self.calls.append(url)
-            return Resp()
-        cinemeta.requests.get=getter
+            return {'metas':metas}
+        cinemeta.http_client.get_json=getter
     def test_user_supplied_rings_json_suffix(self):
         self.mock([
             {'type':'series','id':'tt7631058','name':'The Lord of the Rings: The Rings of Power','releaseInfo':'2022-'},
@@ -276,8 +273,8 @@ class CinemetaTests(unittest.TestCase):
         self.assertIsNone(cinemeta.lookup_imdb('Test','game'))
         self.assertEqual(self.calls,[])
     def test_network_error_no_exception(self):
-        def raise_error(*args,**kwargs):raise cinemeta.requests.exceptions.ConnectionError('offline')
-        cinemeta.requests.get=raise_error
+        def raise_error(*args,**kwargs):raise cinemeta.http_client.HTTPTransportError('offline')
+        cinemeta.http_client.get_json=raise_error
         self.assertIsNone(cinemeta.lookup_imdb('Inception','movie',2010))
     def test_invalid_json_no_exception(self):
         self.mock([])
@@ -386,21 +383,16 @@ class MultiSourceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             adapter = theintrodb.TheIntroDBAdapter(profile_path=folder)
             calls = []
-            class Response:
-                status_code = 200
-                def raise_for_status(self): pass
-                def json(self):
-                    return {'type':'movie','credits':[{'start_ms':3000000,'end_ms':None}]}
-            old = theintrodb.requests.get
-            def fake_get(url, params=None, timeout=None):
+            old = theintrodb.http_client.get_json
+            def fake_get(url, params=None, timeout=None, headers=None):
                 calls.append((url, params, timeout))
-                return Response()
-            theintrodb.requests.get = fake_get
+                return {'type':'movie','credits':[{'start_ms':3000000,'end_ms':None}]}
+            theintrodb.http_client.get_json = fake_get
             try:
                 first = adapter.get_media_data('tt1375666', is_movie=True, duration_ms=7200000)
                 second = adapter.get_media_data('tt1375666', is_movie=True, duration_ms=7200000)
             finally:
-                theintrodb.requests.get = old
+                theintrodb.http_client.get_json = old
             self.assertEqual(first, second)
             self.assertEqual(len(calls), 1)
             self.assertEqual(calls[0][1]['imdb_id'], 'tt1375666')
@@ -438,12 +430,20 @@ class MultiSourceTests(unittest.TestCase):
         class Response:
             def __init__(self, content): self.content=content
             def raise_for_status(self): pass
-        old = __import__('resources.lib.introdb_open_data', fromlist=['requests']).requests.get
-        module = __import__('resources.lib.introdb_open_data', fromlist=['requests'])
-        def fake_get(url, timeout=None):
+        module = __import__('resources.lib.introdb_open_data', fromlist=['http_client'])
+        old_get_bytes = module.http_client.get_bytes
+        old_download = module.http_client.download_to_file
+        def fake_get_bytes(url, timeout=None, headers=None, params=None):
             calls.append(url)
-            return Response(responses[url])
-        module.requests.get = fake_get
+            return responses[url]
+        def fake_download(url, destination, timeout=None, cancel_event=None, chunk_size=65536):
+            calls.append(url)
+            payload = responses[url]
+            with open(destination, 'wb') as handle:
+                handle.write(payload)
+            return len(payload), hashlib.sha256(payload).hexdigest()
+        module.http_client.get_bytes = fake_get_bytes
+        module.http_client.download_to_file = fake_download
         try:
             with tempfile.TemporaryDirectory() as folder:
                 adapter = IntroDBOpenDataAdapter(profile_path=folder)
@@ -464,7 +464,8 @@ class MultiSourceTests(unittest.TestCase):
                 repaired = recovered.get_episode_data('tt7631058', 1, 3)
                 self.assertEqual(repaired['intro']['start_ms'], 76000)
         finally:
-            module.requests.get = old
+            module.http_client.get_bytes = old_get_bytes
+            module.http_client.download_to_file = old_download
         self.assertEqual(calls.count('https://data.introdb.app/latest/manifest.json'), 3)
         self.assertEqual(calls.count('https://data.introdb.app/latest/segments.csv.gz'), 2)
         self.assertEqual(calls.count('https://data.introdb.app/latest/segmentless.csv.gz'), 2)
