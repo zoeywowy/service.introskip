@@ -26,7 +26,7 @@ class IntroDBOpenDataAdapter:
     FILE_NAMES = ("segments.csv.gz", "segmentless.csv.gz")
     IMDB_PATTERN = re.compile(r"^tt[0-9]{7,10}$", re.I)
 
-    def __init__(self, profile_path=None, timeout=8):
+    def __init__(self, profile_path=None, timeout=3):
         if profile_path is None:
             profile_path = xbmcvfs.translatePath(settings.get_addon_info("profile"))
         self.data_dir = os.path.join(str(profile_path), "introdb-open-data")
