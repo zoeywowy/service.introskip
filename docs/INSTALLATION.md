@@ -10,7 +10,7 @@ IntroSkip targets **Kodi 22**. The recommended method installs the repository on
 4. Open **Add-ons → Install from zip file**.
 5. Select **IntroSkip Repository**, then install the repository ZIP Kodi lists.
 6. Open **Add-ons → Install from repository → IntroSkip Repository → Services → IntroSkip**.
-7. Select **Install** and allow Kodi to install the required dependency.
+7. Select **Install**. IntroSkip uses Kodi's built-in Python interface and does not install third-party Python dependencies.
 
 The repository installer is maintained separately. Its [installation guide](https://github.com/zoeywowy/repository.introskip/blob/main/docs/INSTALLATION.md) explains the first-install process and how to troubleshoot the repository source.
 
