@@ -16,7 +16,7 @@
         <license>Apache-2.0</license>
         <website>https://github.com/zoeywowy/service.introskip</website>
         <source>https://github.com/zoeywowy/service.introskip</source>
-        <news>0.0.28 also waits for actual Kodi user inactivity before starting the optional bulk data refresh, preventing it from competing with remote navigation or active playback.</news>
+        <news>0.0.28 removes the external requests dependency, streams and throttles the IntroDB data import, defers bulk sync until Kodi has had no playback or remote/keyboard input for two minutes, and cancels background work cleanly on shutdown.</news>
         <assets>
             <icon>icon.png</icon>
         </assets>
