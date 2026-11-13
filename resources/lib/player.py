@@ -16,7 +16,7 @@ _addon_path = xbmcvfs.translatePath(settings.get_addon_info('path'))
 
 class Player(xbmc.Player):
     def __init__(self):
-        super().__init__("Player")
+        super().__init__()
         self.intro = None
         self.outro = None
         self.recap = None
