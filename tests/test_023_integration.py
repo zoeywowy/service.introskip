@@ -146,6 +146,48 @@ class DialogLifecycleTests(unittest.TestCase):
         self.assertEqual(dialog.close_count, 1)
 
 
+class ServiceLifecycleTests(unittest.TestCase):
+    def test_idle_service_does_not_construct_native_skip_window(self):
+        player = Player()
+        self.assertIsNone(player.dialog)
+        player.shutdown()
+        self.assertIsNone(player.dialog)
+
+    def test_playback_dialog_releases_native_player_reference(self):
+        player = Player()
+        dialog = player.get_dialog()
+        self.assertIs(dialog.player, player)
+        self.assertIs(player.get_dialog(), dialog)
+        dialog.show()
+        player.shutdown()
+        self.assertIsNone(player.dialog)
+        self.assertIsNone(dialog.player)
+        self.assertFalse(dialog._is_open)
+        self.assertEqual(dialog.close_count, 1)
+        self.assertIsNone(player.get_dialog())
+
+    def test_playback_worker_exits_on_shutdown(self):
+        player = Player()
+        started = threading.Event()
+        original = cinemeta.lookup_imdb
+        try:
+            def slow_lookup(*args, **kwargs):
+                started.set()
+                player._shutdown_event.wait(4)
+                return None
+            cinemeta.lookup_imdb = slow_lookup
+            key = (0, 'episode', '', '1', '2')
+            player._launch_introdb(key, 'Test Series')
+            self.assertTrue(started.wait(1))
+            start = time.monotonic()
+            player.shutdown()
+            self.assertLess(time.monotonic() - start, 1)
+            self.assertFalse(any(t.is_alive() for t in player._workers))
+        finally:
+            cinemeta.lookup_imdb = original
+            player.shutdown()
+
+
 class HTTPClientTests(unittest.TestCase):
     def test_json_query_uses_standard_library_and_encodes_parameters(self):
         class Response:
