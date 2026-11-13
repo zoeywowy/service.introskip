@@ -1,5 +1,14 @@
 # IntroSkip release notes
 
+## 0.0.29 — Prompt shutdown on every device
+
+**13 November 2026 · Kodi 22 pre-release**
+
+- Bound Cinemeta, IntroDB, TheIntroDB and bulk-export HTTP waits to three seconds so an in-flight request cannot routinely outlast Kodi's five-second Python shutdown window.
+- Keep the full IntroDB export off the startup path; refresh only after two minutes without playback or user input.
+- Track whether the modeless skip dialog was actually opened. Shutdown no longer calls Kodi's GUI close operation for a dialog that was never shown.
+- Add explicit shutdown-stage logging and tests for dialog lifecycle and bounded network timeouts.
+
 ## 0.0.28 — UI-idle sync guard
 
 **12 November 2026 · Kodi 22 pre-release**
