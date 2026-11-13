@@ -63,8 +63,8 @@ class IntroDBOpenDataAdapter:
         """Return whether the local index exists and passes a lightweight integrity check."""
         return self._database_is_valid()
 
-    def _database_is_valid(self, force=False):
-        """Validate the SQLite file once per adapter instance; never trust a corrupt cache."""
+    def _database_is_valid(self, force=False, deep=False):
+        """Check schema cheaply; run full integrity checks only during idle sync."""
         with self._db_validation_lock:
             if self._db_validated and not force:
                 return self._db_is_valid
@@ -80,6 +80,9 @@ class IntroDBOpenDataAdapter:
                         ).fetchall()
                     }
                     valid = {"segments", "segmentless"}.issubset(tables)
+                    if valid and deep:
+                        check = connection.execute("PRAGMA quick_check(1)").fetchone()
+                        valid = bool(check and check[0] == "ok")
                 except sqlite3.Error:
                     valid = False
                 finally:
@@ -111,7 +114,7 @@ class IntroDBOpenDataAdapter:
 
             # A schema check is intentionally cheap. Full integrity checking is
             # performed only on a newly built temporary database, not playback.
-            if self.is_ready and os.path.isfile(self.manifest_path):
+            if self._database_is_valid(force=True, deep=True) and os.path.isfile(self.manifest_path):
                 try:
                     with open(self.manifest_path, "rb") as handle:
                         current_hash = hashlib.sha256(handle.read()).hexdigest()
