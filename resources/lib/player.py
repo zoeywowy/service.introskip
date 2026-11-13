@@ -36,11 +36,15 @@ class Player(xbmc.Player):
         self._episode_key = None
         self._pending_notification = None
         self._active_title = ''
-        self.dialog = IntroSkipDialog(
-            "intro_skip_dialog.xml", _addon_path, "Default", "1080i", player=self
-        )
+        # Native Kodi GUI windows must not exist while the service is idle.
+        # Create the skip prompt only when playback actually needs it.
+        self.dialog = None
 
     def get_dialog(self):
+        if self.dialog is None and not self._shutdown_event.is_set():
+            self.dialog = IntroSkipDialog(
+                "intro_skip_dialog.xml", _addon_path, "Default", "1080i", player=self
+            )
         return self.dialog
 
     def get_segments(self):
@@ -125,17 +129,19 @@ class Player(xbmc.Player):
             self._pending_notification = None
             self._active_title = ''
 
-        try:
-            self.dialog.close()
-        except Exception:
-            pass
-        # Reset dialog state for new episode.
-        if hasattr(self.dialog, '_cancelled'):
-            self.dialog._cancelled = False
-        try:
-            self.dialog.setProperty("cancelled", "False")
-        except Exception:
-            pass
+        dialog = self.dialog
+        if dialog is not None:
+            try:
+                dialog.close()
+            except Exception:
+                pass
+            # Do not allocate a new native window when playback changes.
+            if hasattr(dialog, '_cancelled'):
+                dialog._cancelled = False
+            try:
+                dialog.setProperty("cancelled", "False")
+            except Exception:
+                pass
 
     @staticmethod
     def _filename_title(media_type, filename):
@@ -578,17 +584,24 @@ class Player(xbmc.Player):
             self._network_results.clear()
             self._requested_keys.clear()
             self._pending_notification = None
-        try:
-            self.dialog.close()
-        except Exception:
-            pass
+        dialog = self.dialog
+        self.dialog = None
+        if dialog is not None:
+            try:
+                dialog.close()
+            except Exception:
+                pass
+            # WindowXMLDialog -> Player and Player -> WindowXMLDialog form a
+            # cycle across native Kodi/Python objects. Break it on shutdown.
+            dialog.player = None
 
     def onPlayBackStopped(self):
         tools.log("onPlaybackStopped", "debug")
-        try:
-            self.dialog.close()
-        except Exception:
-            pass
+        if self.dialog is not None:
+            try:
+                self.dialog.close()
+            except Exception:
+                pass
 
         with self._state_lock:
             self.intro = None
