@@ -15,7 +15,7 @@ The detection pipeline consists of:
 
 Preserve chapter priority, multiple intervals, post-credit safeguards, per-segment Ask/Auto behavior and button customization.
 
-Do not reintroduce subtitle parsing, OMDb credentials, Kodi library-ID scraping, playback diagnostics or persistent cross-episode timestamp caches without an explicit feature decision.
+Do not reintroduce subtitle parsing, OMDb credentials, Kodi library-ID scraping, playback diagnostics or a second general-purpose timestamp cache without an explicit feature decision. Keep IntroDB's live fallback playback-scoped and retain TheIntroDB's documented seven-day response cache.
 
 ## Run the tests
 
