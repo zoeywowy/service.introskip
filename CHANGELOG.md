@@ -1,5 +1,18 @@
 # IntroSkip release notes
 
+## 0.0.27 — Low-resource installation and shutdown
+
+**12 November 2026 · Kodi 22 pre-release**
+
+- Removed the external `script.module.requests` dependency; all HTTP calls use Python's standard library.
+- Deferred the full IntroDB snapshot refresh until Kodi has been idle without video playback for two minutes.
+- Streamed compressed CSV downloads to disk instead of holding both exports in memory.
+- Imported CSV files in small batches, yielding between batches to reduce CPU contention on Android TV and other low-power devices.
+- Added cancellation checks during downloads and database construction; playback start and Kodi shutdown stop background work without waiting.
+- Replaced playback-time full SQLite integrity scans with a lightweight schema check; full checks remain on newly built databases and background refresh.
+- Reused Kodi's add-on settings wrapper rather than constructing it on every service-loop poll.
+- Removed unused legacy helpers and redundant image assets.
+
 ## 0.0.26 — Reliability and release cleanup
 
 **12 November 2026 · Kodi 22 pre-release**
@@ -10,8 +23,6 @@
 - Synchronize playback state and segment access; prevent stale network results from crossing playback sessions.
 - Add automated recovery coverage for a damaged local database.
 - Refresh installation and project documentation to match the working Kodi repository installer.
-
-No detection sources or user-facing skip settings were removed.
 
 ## 0.0.25 — Multi-source detection
 
