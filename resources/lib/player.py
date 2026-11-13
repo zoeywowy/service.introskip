@@ -10,7 +10,6 @@ import xbmcvfs
 from resources.lib import settings
 from resources.lib import tools
 from resources.lib.identifier import Identifier
-from resources.lib.skip_dialog import IntroSkipDialog
 
 _addon_path = xbmcvfs.translatePath(settings.get_addon_info('path'))
 
@@ -42,8 +41,10 @@ class Player(xbmc.Player):
         # Create the skip prompt only when playback actually needs it.
         self.dialog = None
 
-    def get_dialog(self):
-        if self.dialog is None and not self._shutdown_event.is_set():
+    def get_dialog(self, create=False):
+        """Only instantiate a native WindowXMLDialog when a prompt is needed."""
+        if self.dialog is None and create and not self._shutdown_event.is_set():
+            from resources.lib.skip_dialog import IntroSkipDialog
             self.dialog = IntroSkipDialog(
                 "intro_skip_dialog.xml", _addon_path, "Default", "1080i", player=self
             )
@@ -513,6 +514,8 @@ class Player(xbmc.Player):
 
     def onAVStarted(self):
         """Run native chapters immediately; resolve IDs by Cinemeta concurrently."""
+        if self._shutdown_event.is_set():
+            return
         tools.log('onAVStarted: Kodi chapters + keyless Cinemeta/IntroDB', 'info')
         gen = self.playback_generation
         try:
@@ -603,7 +606,7 @@ class Player(xbmc.Player):
         # Kodi waits for *all* Python thread states (even daemon threads) when
         # reloading a service add-on. Allow the interrupted three-second HTTP
         # request to exit, but never block the GUI's five-second deadline.
-        deadline = time.monotonic() + 3.25
+        deadline = time.monotonic() + 2.75
         for worker in workers:
             if worker is threading.current_thread():
                 continue
