@@ -4,7 +4,7 @@
 
 IntroSkip is a lightweight Kodi background service. It combines community timestamps with Kodi's native chapter information and presents a customizable skip button when a reliable segment is found.
 
-**Current build:** 0.0.26 · Kodi 22 pre-release
+**Current build:** 0.0.28 · Kodi 22 pre-release
 
 ## Install
 
