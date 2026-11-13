@@ -5,10 +5,9 @@ import json
 import os
 import time
 
-import requests
 import xbmcvfs
 
-from resources.lib import settings, tools
+from resources.lib import http_client, settings, tools
 
 
 class TheIntroDBAdapter:
@@ -73,8 +72,13 @@ class TheIntroDBAdapter:
         if duration_ms:
             params["duration_ms"] = duration_ms
         try:
-            response = requests.get(self.BASE_URL, params=params, timeout=self.timeout)
-            if response.status_code == 404:
+            try:
+                data = http_client.get_json(
+                    self.BASE_URL, params=params, timeout=self.timeout
+                )
+            except http_client.HTTPStatusError as exc:
+                if exc.status_code != 404:
+                    raise
                 os.makedirs(self.cache_dir, exist_ok=True)
                 temp_path = cache_path + ".tmp"
                 with open(temp_path, "w", encoding="utf-8") as handle:
@@ -82,8 +86,6 @@ class TheIntroDBAdapter:
                 os.replace(temp_path, cache_path)
                 tools.log("TheIntroDB has no published data for {}".format(key), "debug")
                 return None
-            response.raise_for_status()
-            data = response.json()
             if not isinstance(data, dict):
                 return None
             os.makedirs(self.cache_dir, exist_ok=True)
@@ -93,7 +95,7 @@ class TheIntroDBAdapter:
             os.replace(temp_path, cache_path)
             tools.log("TheIntroDB v4 returned data for {}".format(key), "info")
             return data
-        except requests.exceptions.RequestException as exc:
+        except http_client.HTTPError as exc:
             tools.log("TheIntroDB v4 request failed: {}".format(exc), "warning")
             stale = self._read_cache(cache_path, allow_stale=True)
             return stale
