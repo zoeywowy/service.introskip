@@ -10,6 +10,8 @@ from resources.lib.player import Player
 from resources.lib.segment_policy import validate_range, can_auto_skip
 from resources.lib.kodi_native import KodiNativeMonitor
 
+OPEN_DATA_IDLE_DELAY = 120.0
+
 ORDER = ('recap', 'intro', 'preview', 'outro', 'movie_outro')
 MODE_SETTINGS = {
     'intro': 'skip.intro_mode',
@@ -91,7 +93,13 @@ def run():
                 if was_playing:
                     idle_since = clock_now
                 was_playing = False
-                if not sync_started and clock_now - idle_since >= 120.0:
+                try:
+                    ui_idle = float(xbmc.getGlobalIdleTime())
+                except (AttributeError, TypeError, ValueError, RuntimeError):
+                    ui_idle = 0.0
+                if (not sync_started
+                        and clock_now - idle_since >= OPEN_DATA_IDLE_DELAY
+                        and ui_idle >= OPEN_DATA_IDLE_DELAY):
                     try:
                         player.identifier.introdb_open_data.start_background_sync()
                         sync_started = True
