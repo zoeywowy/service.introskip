@@ -11,7 +11,6 @@ class Identifier:
         self.theintrodb_adapter = TheIntroDBAdapter()
         self.chapter_adapter = ChaptersAdapter()
         self._introdb_open_data = None
-        self.segment_evidence = {}
 
     @property
     def introdb_open_data(self):
