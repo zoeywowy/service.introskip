@@ -14,7 +14,7 @@ class TheIntroDBAdapter:
     BASE_URL = "https://api.theintrodb.org/v4/media"
     CACHE_TTL = 7 * 24 * 60 * 60
 
-    def __init__(self, profile_path=None, timeout=5):
+    def __init__(self, profile_path=None, timeout=3):
         if profile_path is None:
             profile_path = xbmcvfs.translatePath(settings.get_addon_info("profile"))
         self.cache_dir = os.path.join(str(profile_path), "theintrodb-cache")
