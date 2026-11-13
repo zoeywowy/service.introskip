@@ -265,11 +265,11 @@ class IntroDBOpenDataAdapter:
         return "post_credits" if value in ("post_credits", "postcredits") else value
 
     def _build_database(self, path, payload_paths):
-        """Build a complete, validated SQLite index from the two documented CSV exports."""
+        """Build a verified SQLite index from streamed, checksum-verified CSV files."""
         connection = sqlite3.connect(path)
         try:
-            # This temporary database can be rebuilt if interrupted; keep the
-            # existing verified database untouched until the replacement passes.
+            # The temporary database is disposable. The previous verified index
+            # remains untouched until this replacement passes its integrity check.
             connection.execute("PRAGMA journal_mode=OFF")
             connection.execute("PRAGMA synchronous=OFF")
             connection.execute("PRAGMA temp_store=MEMORY")
@@ -301,133 +301,151 @@ class IntroDBOpenDataAdapter:
                 )
             """)
 
-            with gzip.open(payload_paths["segments.csv.gz"], "rt", encoding="utf-8-sig", newline="") as source:
+            with gzip.open(
+                payload_paths["segments.csv.gz"], "rt",
+                encoding="utf-8-sig", newline=""
+            ) as source:
                 reader = csv.DictReader(source)
-                    required = {
-                        "imdb_id", "is_movie", "season", "episode",
-                        "segment", "start_ms", "end_ms",
-                    }
-                    if not reader.fieldnames or not required.issubset(set(reader.fieldnames)):
-                        raise ValueError("segments.csv.gz is missing required columns")
+                required = {
+                    "imdb_id", "is_movie", "season", "episode",
+                    "segment", "start_ms", "end_ms",
+                }
+                if not reader.fieldnames or not required.issubset(set(reader.fieldnames)):
+                    raise ValueError("segments.csv.gz is missing required columns")
 
-                    batch = []
-                    rows_seen = 0
-                    rows_accepted = 0
-                    for row in reader:
-                        rows_seen += 1
-                        if rows_seen % 2000 == 0 and self._cancel_event.is_set():
+                batch = []
+                rows_seen = 0
+                rows_accepted = 0
+                for row in reader:
+                    rows_seen += 1
+                    if rows_seen % 2000 == 0:
+                        if self._cancel_event.is_set():
                             raise http_client.DownloadCancelled()
-                        imdb_id = str(row.get("imdb_id") or "").strip().lower()
-                        is_movie = self._boolean(row.get("is_movie"))
-                        season = self._integer(row.get("season"), -1)
-                        episode = self._integer(row.get("episode"), -1)
-                        segment = self._segment(row.get("segment"))
-                        start_ms = self._integer(row.get("start_ms"), -1)
-                        end_ms = self._integer(row.get("end_ms"), -1)
+                    imdb_id = str(row.get("imdb_id") or "").strip().lower()
+                    is_movie = self._boolean(row.get("is_movie"))
+                    season = self._integer(row.get("season"), -1)
+                    episode = self._integer(row.get("episode"), -1)
+                    segment = self._segment(row.get("segment"))
+                    start_ms = self._integer(row.get("start_ms"), -1)
+                    end_ms = self._integer(row.get("end_ms"), -1)
 
-                        if (
-                            not self.IMDB_PATTERN.fullmatch(imdb_id)
-                            or is_movie is None
-                            or season < 0
-                            or episode < 0
-                            or (is_movie and (season != 0 or episode != 0))
-                            or segment not in ("intro", "recap", "outro", "post_credits")
-                            or start_ms < 0
-                            or end_ms <= start_ms
-                            or end_ms >= 86400000
+                    if (
+                        not self.IMDB_PATTERN.fullmatch(imdb_id)
+                        or is_movie is None
+                        or season < 0
+                        or episode < 0
+                        or (is_movie and (season != 0 or episode != 0))
+                        or segment not in ("intro", "recap", "outro", "post_credits")
+                        or start_ms < 0
+                        or end_ms <= start_ms
+                        or end_ms >= 86400000
+                    ):
+                        continue
+
+                    try:
+                        confidence = (
+                            float(row.get("confidence"))
+                            if row.get("confidence") not in (None, "") else None
+                        )
+                        if confidence is not None and (
+                            not math.isfinite(confidence) or not 0 <= confidence <= 1
                         ):
-                            continue
-
-                        try:
-                            confidence = (
-                                float(row.get("confidence"))
-                                if row.get("confidence") not in (None, "") else None
-                            )
-                            if confidence is not None and (
-                                not math.isfinite(confidence) or not 0 <= confidence <= 1
-                            ):
-                                confidence = None
-                        except (TypeError, ValueError, OverflowError):
                             confidence = None
+                    except (TypeError, ValueError, OverflowError):
+                        confidence = None
 
-                        submissions = max(0, self._integer(row.get("submission_count"), 0))
-                        batch.append((
-                            imdb_id, int(is_movie), season, episode, segment,
-                            start_ms, end_ms, confidence, submissions,
-                            str(row.get("updated_at") or ""),
-                        ))
-                        rows_accepted += 1
+                    submissions = max(0, self._integer(row.get("submission_count"), 0))
+                    batch.append((
+                        imdb_id, int(is_movie), season, episode, segment,
+                        start_ms, end_ms, confidence, submissions,
+                        str(row.get("updated_at") or ""),
+                    ))
+                    rows_accepted += 1
 
-                        if len(batch) >= 2000:
-                            connection.executemany("""
-                                INSERT INTO segments
-                                (imdb_id,is_movie,season,episode,segment,start_ms,end_ms,
-                                 confidence,submission_count,updated_at)
-                                VALUES (?,?,?,?,?,?,?,?,?,?)
-                            """, batch)
-                            batch = []
-                            time.sleep(0.003)
-
-                    if batch:
+                    if len(batch) >= 2000:
                         connection.executemany("""
                             INSERT INTO segments
                             (imdb_id,is_movie,season,episode,segment,start_ms,end_ms,
                              confidence,submission_count,updated_at)
                             VALUES (?,?,?,?,?,?,?,?,?,?)
                         """, batch)
-                    if rows_seen and not rows_accepted:
-                        raise ValueError("segments.csv.gz contains no usable timestamp rows")
+                        batch = []
+                        time.sleep(0.003)
 
-            with gzip.open(payload_paths["segmentless.csv.gz"], "rt", encoding="utf-8-sig", newline="") as source:
+                if batch:
+                    connection.executemany("""
+                        INSERT INTO segments
+                        (imdb_id,is_movie,season,episode,segment,start_ms,end_ms,
+                         confidence,submission_count,updated_at)
+                        VALUES (?,?,?,?,?,?,?,?,?,?)
+                    """, batch)
+                if rows_seen and not rows_accepted:
+                    raise ValueError("segments.csv.gz contains no usable timestamp rows")
+
+            with gzip.open(
+                payload_paths["segmentless.csv.gz"], "rt",
+                encoding="utf-8-sig", newline=""
+            ) as source:
                 reader = csv.DictReader(source)
-                    required = {"imdb_id", "is_movie", "season", "episode", "segment"}
-                    if not reader.fieldnames or not required.issubset(set(reader.fieldnames)):
-                        raise ValueError("segmentless.csv.gz is missing required columns")
+                required = {"imdb_id", "is_movie", "season", "episode", "segment"}
+                if not reader.fieldnames or not required.issubset(set(reader.fieldnames)):
+                    raise ValueError("segmentless.csv.gz is missing required columns")
 
-                    batch = []
-                    rows_seen = 0
-                    rows_accepted = 0
-                    for row in reader:
-                        rows_seen += 1
-                        imdb_id = str(row.get("imdb_id") or "").strip().lower()
-                        is_movie = self._boolean(row.get("is_movie"))
-                        season = self._integer(row.get("season"), -1)
-                        episode = self._integer(row.get("episode"), -1)
-                        segment = self._segment(row.get("segment"))
+                batch = []
+                rows_seen = 0
+                rows_accepted = 0
+                for row in reader:
+                    rows_seen += 1
+                    if rows_seen % 2000 == 0 and self._cancel_event.is_set():
+                        raise http_client.DownloadCancelled()
+                    imdb_id = str(row.get("imdb_id") or "").strip().lower()
+                    is_movie = self._boolean(row.get("is_movie"))
+                    season = self._integer(row.get("season"), -1)
+                    episode = self._integer(row.get("episode"), -1)
+                    segment = self._segment(row.get("segment"))
 
-                        if (
-                            not self.IMDB_PATTERN.fullmatch(imdb_id)
-                            or is_movie is None
-                            or season < 0
-                            or episode < 0
-                            or (is_movie and (season != 0 or episode != 0))
-                            or segment not in ("intro", "recap", "outro")
-                        ):
-                            continue
+                    if (
+                        not self.IMDB_PATTERN.fullmatch(imdb_id)
+                        or is_movie is None
+                        or season < 0
+                        or episode < 0
+                        or (is_movie and (season != 0 or episode != 0))
+                        or segment not in ("intro", "recap", "outro")
+                    ):
+                        continue
 
-                        batch.append((
-                            imdb_id, int(is_movie), season, episode,
-                            segment, str(row.get("updated_at") or ""),
-                        ))
-                        rows_accepted += 1
+                    batch.append((
+                        imdb_id, int(is_movie), season, episode,
+                        segment, str(row.get("updated_at") or ""),
+                    ))
+                    rows_accepted += 1
 
-                    if batch:
+                    if len(batch) >= 2000:
                         connection.executemany("""
                             INSERT OR REPLACE INTO segmentless
                             (imdb_id,is_movie,season,episode,segment,updated_at)
                             VALUES (?,?,?,?,?,?)
                         """, batch)
                         batch = []
-                    if rows_seen and not rows_accepted:
-                        raise ValueError("segmentless.csv.gz contains no usable confirmation rows")
+                        time.sleep(0.003)
 
-            # Build the lookup index after bulk insertion for a faster first sync.
+                if batch:
+                    connection.executemany("""
+                        INSERT OR REPLACE INTO segmentless
+                        (imdb_id,is_movie,season,episode,segment,updated_at)
+                        VALUES (?,?,?,?,?,?)
+                    """, batch)
+                if rows_seen and not rows_accepted:
+                    raise ValueError("segmentless.csv.gz contains no usable confirmation rows")
+
+            if self._cancel_event.is_set():
+                raise http_client.DownloadCancelled()
+
+            # Create the lookup index after bulk insertion for faster imports.
             connection.execute("""
                 CREATE INDEX idx_segments_lookup
                 ON segments(imdb_id, is_movie, season, episode, segment)
             """)
-            if self._cancel_event.is_set():
-                raise http_client.DownloadCancelled()
             connection.commit()
 
             segment_count = connection.execute("SELECT COUNT(*) FROM segments").fetchone()[0]
