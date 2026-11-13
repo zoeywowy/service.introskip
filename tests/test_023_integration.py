@@ -335,9 +335,6 @@ class PlaybackTests(unittest.TestCase):
             time.sleep(.005)
         self.assertIsNotNone(self.p.intro)
 
-if __name__=='__main__':unittest.main(verbosity=2)
-
-
 class MultiSourceTests(unittest.TestCase):
     def test_theintrodb_preserves_multiple_ranges_and_null_boundaries(self):
         data = {
@@ -427,11 +424,20 @@ class MultiSourceTests(unittest.TestCase):
                 absent = adapter.get_episode_data('tt7631058', 1, 4)
                 self.assertTrue(absent['no_intro'])
                 self.assertFalse(adapter.sync_if_needed())
+
+                # A new Kodi session must reject a damaged local cache even when
+                # the remote manifest has not changed, then rebuild it safely.
+                with open(adapter.db_path, 'wb') as damaged:
+                    damaged.write(b'not a sqlite database')
+                recovered = IntroDBOpenDataAdapter(profile_path=folder)
+                self.assertTrue(recovered.sync_if_needed())
+                repaired = recovered.get_episode_data('tt7631058', 1, 3)
+                self.assertEqual(repaired['intro']['start_ms'], 76000)
         finally:
             module.requests.get = old
-        self.assertEqual(calls.count('https://data.introdb.app/latest/manifest.json'), 2)
-        self.assertEqual(calls.count('https://data.introdb.app/latest/segments.csv.gz'), 1)
-        self.assertEqual(calls.count('https://data.introdb.app/latest/segmentless.csv.gz'), 1)
+        self.assertEqual(calls.count('https://data.introdb.app/latest/manifest.json'), 3)
+        self.assertEqual(calls.count('https://data.introdb.app/latest/segments.csv.gz'), 2)
+        self.assertEqual(calls.count('https://data.introdb.app/latest/segmentless.csv.gz'), 2)
 
     def test_preview_provider_maps_to_preview_segment(self):
         settings_values['general.use_preview'] = True
