@@ -93,7 +93,7 @@ xbmcaddon=types.ModuleType('xbmcaddon');xbmcaddon.Addon=Addon
 for k,mod in [('xbmc',xbmc),('xbmcgui',xbmcgui),('xbmcvfs',xbmcvfs),('xbmcaddon',xbmcaddon)]:
     sys.modules[k]=mod
 
-from resources.lib import tools,button_assets,color,cinemeta,theintrodb
+from resources.lib import tools,button_assets,color,cinemeta,theintrodb,http_client
 from resources.lib.introdb_open_data import IntroDBOpenDataAdapter
 from resources.lib.player import Player
 from resources.lib.skip_dialog import IntroSkipDialog
@@ -126,6 +126,79 @@ class KodiNativeMonitorTests(unittest.TestCase):
         self.assertEqual(monitor.take_changes(), set())
 
 
+class HTTPClientTests(unittest.TestCase):
+    def test_json_query_uses_standard_library_and_encodes_parameters(self):
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self, size=-1): return b'{"ok":true}'
+        calls = []
+        old = http_client.urlopen
+        http_client.urlopen = lambda request, timeout=None: (
+            calls.append((request.full_url, timeout)) or Response()
+        )
+        try:
+            data = http_client.get_json(
+                "https://example.test/search",
+                params={"title": "Amélie"},
+                timeout=3,
+            )
+        finally:
+            http_client.urlopen = old
+        self.assertEqual(data, {"ok": True})
+        self.assertIn("title=Am%C3%A9lie", calls[0][0])
+        self.assertEqual(calls[0][1], 3)
+
+    def test_download_streams_chunks_and_hashes_file(self):
+        chunks = [b"first-", b"second", b""]
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self, size=-1): return chunks.pop(0)
+        old = http_client.urlopen
+        http_client.urlopen = lambda request, timeout=None: Response()
+        try:
+            with tempfile.TemporaryDirectory() as folder:
+                destination = os.path.join(folder, "snapshot.gz")
+                size, digest = http_client.download_to_file(
+                    "https://example.test/snapshot.gz", destination
+                )
+                with open(destination, "rb") as handle:
+                    payload = handle.read()
+        finally:
+            http_client.urlopen = old
+        self.assertEqual(payload, b"first-second")
+        self.assertEqual(size, len(payload))
+        self.assertEqual(digest, hashlib.sha256(payload).hexdigest())
+
+    def test_cancelled_download_removes_partial_file(self):
+        event = threading.Event()
+        class Response:
+            def __init__(self): self.sent = False
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self, size=-1):
+                if not self.sent:
+                    self.sent = True
+                    event.set()
+                    return b"partial"
+                return b""
+        old = http_client.urlopen
+        http_client.urlopen = lambda request, timeout=None: Response()
+        try:
+            with tempfile.TemporaryDirectory() as folder:
+                destination = os.path.join(folder, "partial.gz")
+                with self.assertRaises(http_client.DownloadCancelled):
+                    http_client.download_to_file(
+                        "https://example.test/large.gz",
+                        destination,
+                        cancel_event=event,
+                    )
+                self.assertFalse(os.path.exists(destination))
+        finally:
+            http_client.urlopen = old
+
+
 class PackageTests(unittest.TestCase):
     def setUp(self):
         settings_values.update({'customize.theme':'Dark', 'customize.size':'1',
@@ -140,6 +213,9 @@ class PackageTests(unittest.TestCase):
         self.assertTrue(all(part.isdigit() for part in version_parts))
         deps=[item.attrib['addon'] for item in root.findall('requires/import')]
         self.assertEqual(deps,['xbmc.python'])
+        for module in ('cinemeta.py','introdb.py','introdb_open_data.py','theintrodb.py'):
+            source=(BASE/'resources/lib'/module).read_text()
+            self.assertNotIn('import requests',source)
     def test_settings_no_advanced_or_diagnostics(self):
         root=ET.parse(BASE/'resources/settings.xml').getroot()
         cats=root.findall('category')
@@ -427,9 +503,6 @@ class MultiSourceTests(unittest.TestCase):
             'https://data.introdb.app/latest/segmentless.csv.gz': segmentless_gz,
         }
         calls = []
-        class Response:
-            def __init__(self, content): self.content=content
-            def raise_for_status(self): pass
         module = __import__('resources.lib.introdb_open_data', fromlist=['http_client'])
         old_get_bytes = module.http_client.get_bytes
         old_download = module.http_client.download_to_file
