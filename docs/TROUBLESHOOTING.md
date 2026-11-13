@@ -1,57 +1,45 @@
-# Troubleshooting IntroSkip
+# Troubleshooting
 
-## Repository ZIP browser is empty
+## No skip button appears
 
-If Kodi's **Install from zip file** browser shows only `..` and `0 items`, you have opened the GitHub Pages download webpage as though it were a folder. Kodi cannot browse the download button inside that HTML page.
+1. Confirm the relevant segment is enabled under **Detection**.
+2. Set its behavior to **Ask** while testing.
+3. Try another episode or movie. Not every title has community timestamps or useful chapter markers.
+4. Confirm the title is identifiable. Cinemeta rejects ambiguous matches rather than guessing.
+5. Check the Kodi log for IntroSkip messages around the time playback starts.
 
-1. Cancel the empty browser.
-2. Open the [IntroSkip download page](https://zoeywowy.github.io/repository.introskip/) in a normal browser.
-3. Download `repository.introskip-1.0.4.zip`. Do not extract it.
-4. In Kodi, open **Add-ons → Install from zip file** and browse to the ZIP in Downloads, USB storage or a network share.
+Kodi chapter detection only works when the playing file exposes chapter information.
 
-Do not add `https://zoeywowy.github.io/repository.introskip/` as a Kodi File Manager source.
+## The skip time is wrong
 
-## Install from ZIP shows an empty folder
+Different releases of the same movie or episode can have different cuts and durations. IntroSkip compares available evidence and uses playback duration for TheIntroDB version matching, but a source may still differ.
 
-If Kodi's **Install from zip file** window shows only `..` and **0 items**, it is browsing an empty location. The GitHub Pages URL is an HTML download page, not a browseable ZIP directory.
+Try another release of the title. If reporting a mismatch, include the title, season/episode and approximate expected and actual boundaries.
 
-1. Open the [IntroSkip download page](https://zoeywowy.github.io/repository.introskip/) in a normal web browser.
-2. Download `repository.introskip-1.0.4.zip`. Do not extract it.
-3. Make the ZIP accessible to Kodi (Downloads on Windows, or local/shared storage on Android and Fire TV).
-4. Return to Kodi's **Install from zip file** browser and select the local folder containing the ZIP.
+## IntroDB data is not available
 
-**Do not add the GitHub Pages URL as a Kodi File Manager source.** Kodi cannot browse the HTML download page.
+IntroSkip keeps the last valid local database if a download fails. At startup it checks the daily manifest and refreshes the snapshot only when it changes.
 
-Do not uninstall the IntroSkip service or clear its settings to solve an empty file picker.
+A missing local record can trigger the single-item IntroDB API fallback. Network failures do not disable Kodi chapter detection or TheIntroDB.
 
-## IntroSkip is installed, but no skip button appears
+## TheIntroDB data is missing
 
-- Check **Detection** and enable the relevant segment. By default, intro is enabled, while recap and credits are off.
-- Set the segment's behavior to **Ask** for testing.
-- IntroDB may have no timestamps for that title, or the current video may not expose useful named chapters.
-- Cinemeta must identify the title unambiguously. If it cannot, IntroDB will not be used for that item, although named Kodi chapters may still work.
-- Test another episode or video. Different editions of the same title can have different timing.
+TheIntroDB is an independent source and may not have data for every title or release. Its lookup uses the IMDb ID as a supported fallback and playback duration to select a version. Missing data from this source is normal and does not prevent other sources from working.
 
-## Skip time is inaccurate
+## The button is hard to read or covers controls
 
-Community timestamps may have been measured on another cut or edition. Explicitly named Kodi chapters are preferred where available. If you report a mismatch, include the title and approximate expected/actual start and end times.
+Open **Button appearance** and adjust the theme, color, position, size or style. Use **Preview button** before returning to playback.
 
-## Button is hard to read or covers the controls
+## Report a problem
 
-Use **Button appearance** to adjust the position, size, theme or color. Try **Preview button**. Light and Dark themes remember separate color choices.
+[Open an issue on GitHub](https://github.com/zoeywowy/service.introskip/issues/new) and include:
 
-## Report a bug
+- Kodi version/build and device operating system
+- IntroSkip version
+- Movie or show name and season/episode, if relevant
+- Steps to reproduce and expected versus actual behavior
+- Relevant Kodi log lines, with private information removed
 
-[Open a GitHub issue](https://github.com/zoeywowy/service.introskip/issues/new) with:
+Never post private stream URLs, credentials, usernames or tokens.
 
-- Exact Kodi version/build and device operating system.
-- IntroSkip or IntroSkip Repository version.
-- The steps you took and the exact error message.
-- What you expected to happen and what happened.
-- Relevant redacted Kodi log lines.
-
-For playback issues, include the movie or show name and season/episode if helpful. **Do not post private streaming URLs, credentials or personal information.**
-
-## Testing status
-
-Version 0.0.24 has automated tests using Kodi stubs. Real-device behavior, including Kodi 22 prerelease builds and third-party providers, still needs validation.
+For problems installing the repository, use the [repository troubleshooting guide](https://github.com/zoeywowy/repository.introskip/blob/main/docs/INSTALLATION.md).
