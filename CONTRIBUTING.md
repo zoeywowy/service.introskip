@@ -4,7 +4,7 @@ Thanks for helping improve IntroSkip. Before making a change, open a [GitHub iss
 
 ## Project scope
 
-IntroSkip targets **Kodi 22**. Keep changes focused, testable and compatible with Kodi's Python runtime.
+IntroSkip targets **Kodi 22 (Piers)** and **Python 3.14**. Keep changes focused, testable and compatible with Kodi's Python runtime.
 
 The detection pipeline consists of:
 
