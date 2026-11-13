@@ -75,6 +75,7 @@ def run():
     try:
         while not monitor.abortRequested():
             if monitor.waitForAbort(0.5):
+                tools.log('Kodi requested service shutdown', 'info')
                 break
             try:
                 is_playing = player.isPlayingVideo()
@@ -275,4 +276,6 @@ def run():
     
     
     finally:
+        tools.log('Service cleanup starting', 'info')
         player.shutdown()
+        tools.log('Service cleanup finished', 'info')
