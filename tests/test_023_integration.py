@@ -97,6 +97,34 @@ from resources.lib import tools,button_assets,color,cinemeta,theintrodb
 from resources.lib.introdb_open_data import IntroDBOpenDataAdapter
 from resources.lib.player import Player
 from resources.lib.skip_dialog import IntroSkipDialog
+from resources.lib.kodi_native import KodiNativeMonitor
+
+class KodiNativeMonitorTests(unittest.TestCase):
+    def test_chapter_property_is_queued_once(self):
+        monitor = KodiNativeMonitor()
+        monitor.onNotification(
+            "xbmc", "Player.OnPropertyChanged",
+            json.dumps({"property": {"chapter": 2}})
+        )
+        self.assertEqual(monitor.take_changes(), {"chapters"})
+        self.assertEqual(monitor.take_changes(), set())
+
+    def test_unrelated_player_property_is_ignored(self):
+        monitor = KodiNativeMonitor()
+        monitor.onNotification(
+            "xbmc", "Player.OnPropertyChanged",
+            json.dumps({"property": {"speed": 2}})
+        )
+        self.assertEqual(monitor.take_changes(), set())
+
+    def test_other_notifications_are_ignored(self):
+        monitor = KodiNativeMonitor()
+        monitor.onNotification(
+            "xbmc", "Player.OnAVStarted",
+            json.dumps({"property": {"chapter": 2}})
+        )
+        self.assertEqual(monitor.take_changes(), set())
+
 
 class PackageTests(unittest.TestCase):
     def setUp(self):
