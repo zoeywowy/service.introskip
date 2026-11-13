@@ -49,7 +49,7 @@ class VideoTag:
 
 class FakeKodiPlayer:
     playing_tag = VideoTag()
-    def __init__(self,*args,**kwargs):pass
+    def __init__(self):pass
     def getVideoInfoTag(self):return self.playing_tag
     def getTotalTime(self):return 3600
     def isPlayingVideo(self):return True
