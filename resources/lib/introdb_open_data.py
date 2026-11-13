@@ -9,6 +9,7 @@ import gzip
 import hashlib
 import io
 import json
+import math
 import os
 import re
 import sqlite3
@@ -35,6 +36,9 @@ class IntroDBOpenDataAdapter:
         self.timeout = timeout
         self._sync_lock = threading.Lock()
         self._sync_thread = None
+        self._db_validation_lock = threading.Lock()
+        self._db_validated = False
+        self._db_is_valid = False
 
     def start_background_sync(self):
         """Check the daily manifest without delaying Kodi startup or playback."""
@@ -50,7 +54,39 @@ class IntroDBOpenDataAdapter:
 
     @property
     def is_ready(self):
-        return os.path.isfile(self.db_path)
+        """Return whether the local index exists and passes a lightweight integrity check."""
+        return self._database_is_valid()
+
+    def _database_is_valid(self, force=False):
+        """Validate the SQLite file once per adapter instance; never trust a corrupt cache."""
+        with self._db_validation_lock:
+            if self._db_validated and not force:
+                return self._db_is_valid
+
+            valid = False
+            if os.path.isfile(self.db_path):
+                connection = None
+                try:
+                    connection = sqlite3.connect(self.db_path, timeout=2)
+                    check = connection.execute("PRAGMA quick_check(1)").fetchone()
+                    tables = {
+                        row[0] for row in connection.execute(
+                            "SELECT name FROM sqlite_master WHERE type='table'"
+                        ).fetchall()
+                    }
+                    valid = bool(
+                        check and check[0] == "ok"
+                        and {"segments", "segmentless"}.issubset(tables)
+                    )
+                except sqlite3.Error:
+                    valid = False
+                finally:
+                    if connection is not None:
+                        connection.close()
+
+            self._db_is_valid = valid
+            self._db_validated = True
+            return valid
 
     def sync_if_needed(self):
         """Download and atomically replace the local index only when changed."""
@@ -85,11 +121,12 @@ class IntroDBOpenDataAdapter:
                 file_response.raise_for_status()
                 payload = file_response.content
                 expected_sha = self._metadata_value(info, ("sha256", "sha_256", "checksum"))
-                if expected_sha:
-                    expected_sha = str(expected_sha).lower().replace("sha256:", "").strip()
-                    actual_sha = hashlib.sha256(payload).hexdigest()
-                    if actual_sha != expected_sha:
-                        raise ValueError("{} failed SHA-256 verification".format(filename))
+                expected_sha = str(expected_sha or "").lower().replace("sha256:", "").strip()
+                if not re.fullmatch(r"[0-9a-f]{64}", expected_sha):
+                    raise ValueError("Manifest is missing a valid SHA-256 for {}".format(filename))
+                actual_sha = hashlib.sha256(payload).hexdigest()
+                if actual_sha != expected_sha:
+                    raise ValueError("{} failed SHA-256 verification".format(filename))
                 expected_size = self._metadata_value(
                     info, ("compressed_size", "size_bytes", "bytes", "size")
                 )
@@ -116,6 +153,9 @@ class IntroDBOpenDataAdapter:
                 os.remove(temp_db)
             self._build_database(temp_db, payloads)
             os.replace(temp_db, self.db_path)
+            with self._db_validation_lock:
+                self._db_validated = False
+                self._db_is_valid = False
             manifest_tmp = self.manifest_path + ".tmp"
             with open(manifest_tmp, "wb") as handle:
                 handle.write(manifest_bytes)
@@ -178,7 +218,12 @@ class IntroDBOpenDataAdapter:
 
     @staticmethod
     def _boolean(value):
-        return str(value or "").strip().lower() in ("1", "t", "true", "yes", "y")
+        value = str(value or "").strip().lower()
+        if value in ("1", "t", "true", "yes", "y"):
+            return True
+        if value in ("0", "f", "false", "no", "n"):
+            return False
+        return None
 
     @staticmethod
     def _segment(value):
@@ -186,6 +231,7 @@ class IntroDBOpenDataAdapter:
         return "post_credits" if value in ("post_credits", "postcredits") else value
 
     def _build_database(self, path, payloads):
+        """Build a complete, validated SQLite index from the two documented CSV exports."""
         connection = sqlite3.connect(path)
         try:
             connection.execute("PRAGMA journal_mode=DELETE")
@@ -206,10 +252,6 @@ class IntroDBOpenDataAdapter:
                 )
             """)
             connection.execute("""
-                CREATE INDEX idx_segments_lookup
-                ON segments(imdb_id, is_movie, season, episode, segment)
-            """)
-            connection.execute("""
                 CREATE TABLE segmentless (
                     imdb_id TEXT NOT NULL,
                     is_movie INTEGER NOT NULL,
@@ -220,32 +262,63 @@ class IntroDBOpenDataAdapter:
                     UNIQUE(imdb_id, is_movie, season, episode, segment)
                 )
             """)
+
             with gzip.GzipFile(fileobj=io.BytesIO(payloads["segments.csv.gz"]), mode="rb") as zipped:
                 with io.TextIOWrapper(zipped, encoding="utf-8-sig", newline="") as source:
                     reader = csv.DictReader(source)
-                    required = {"imdb_id", "is_movie", "season", "episode", "segment", "start_ms", "end_ms"}
+                    required = {
+                        "imdb_id", "is_movie", "season", "episode",
+                        "segment", "start_ms", "end_ms",
+                    }
                     if not reader.fieldnames or not required.issubset(set(reader.fieldnames)):
                         raise ValueError("segments.csv.gz is missing required columns")
+
                     batch = []
+                    rows_seen = 0
+                    rows_accepted = 0
                     for row in reader:
+                        rows_seen += 1
                         imdb_id = str(row.get("imdb_id") or "").strip().lower()
+                        is_movie = self._boolean(row.get("is_movie"))
+                        season = self._integer(row.get("season"), -1)
+                        episode = self._integer(row.get("episode"), -1)
                         segment = self._segment(row.get("segment"))
                         start_ms = self._integer(row.get("start_ms"), -1)
                         end_ms = self._integer(row.get("end_ms"), -1)
-                        if (not self.IMDB_PATTERN.match(imdb_id) or not segment
-                                or start_ms < 0 or end_ms <= start_ms):
+
+                        if (
+                            not self.IMDB_PATTERN.fullmatch(imdb_id)
+                            or is_movie is None
+                            or season < 0
+                            or episode < 0
+                            or (is_movie and (season != 0 or episode != 0))
+                            or segment not in ("intro", "recap", "outro", "post_credits")
+                            or start_ms < 0
+                            or end_ms <= start_ms
+                            or end_ms >= 86400000
+                        ):
                             continue
+
                         try:
-                            confidence = float(row.get("confidence")) if row.get("confidence") not in (None, "") else None
+                            confidence = (
+                                float(row.get("confidence"))
+                                if row.get("confidence") not in (None, "") else None
+                            )
+                            if confidence is not None and (
+                                not math.isfinite(confidence) or not 0 <= confidence <= 1
+                            ):
+                                confidence = None
                         except (TypeError, ValueError, OverflowError):
                             confidence = None
+
+                        submissions = max(0, self._integer(row.get("submission_count"), 0))
                         batch.append((
-                            imdb_id, int(self._boolean(row.get("is_movie"))),
-                            self._integer(row.get("season")), self._integer(row.get("episode")),
-                            segment, start_ms, end_ms, confidence,
-                            self._integer(row.get("submission_count"), 0),
+                            imdb_id, int(is_movie), season, episode, segment,
+                            start_ms, end_ms, confidence, submissions,
                             str(row.get("updated_at") or ""),
                         ))
+                        rows_accepted += 1
+
                         if len(batch) >= 2000:
                             connection.executemany("""
                                 INSERT INTO segments
@@ -254,6 +327,7 @@ class IntroDBOpenDataAdapter:
                                 VALUES (?,?,?,?,?,?,?,?,?,?)
                             """, batch)
                             batch = []
+
                     if batch:
                         connection.executemany("""
                             INSERT INTO segments
@@ -261,6 +335,8 @@ class IntroDBOpenDataAdapter:
                              confidence,submission_count,updated_at)
                             VALUES (?,?,?,?,?,?,?,?,?,?)
                         """, batch)
+                    if rows_seen and not rows_accepted:
+                        raise ValueError("segments.csv.gz contains no usable timestamp rows")
 
             with gzip.GzipFile(fileobj=io.BytesIO(payloads["segmentless.csv.gz"]), mode="rb") as zipped:
                 with io.TextIOWrapper(zipped, encoding="utf-8-sig", newline="") as source:
@@ -268,28 +344,65 @@ class IntroDBOpenDataAdapter:
                     required = {"imdb_id", "is_movie", "season", "episode", "segment"}
                     if not reader.fieldnames or not required.issubset(set(reader.fieldnames)):
                         raise ValueError("segmentless.csv.gz is missing required columns")
+
                     batch = []
+                    rows_seen = 0
+                    rows_accepted = 0
                     for row in reader:
+                        rows_seen += 1
                         imdb_id = str(row.get("imdb_id") or "").strip().lower()
+                        is_movie = self._boolean(row.get("is_movie"))
+                        season = self._integer(row.get("season"), -1)
+                        episode = self._integer(row.get("episode"), -1)
                         segment = self._segment(row.get("segment"))
-                        if not self.IMDB_PATTERN.match(imdb_id) or segment not in ("intro", "recap", "outro"):
+
+                        if (
+                            not self.IMDB_PATTERN.fullmatch(imdb_id)
+                            or is_movie is None
+                            or season < 0
+                            or episode < 0
+                            or (is_movie and (season != 0 or episode != 0))
+                            or segment not in ("intro", "recap", "outro")
+                        ):
                             continue
+
                         batch.append((
-                            imdb_id, int(self._boolean(row.get("is_movie"))),
-                            self._integer(row.get("season")), self._integer(row.get("episode")),
+                            imdb_id, int(is_movie), season, episode,
                             segment, str(row.get("updated_at") or ""),
                         ))
+                        rows_accepted += 1
+
                     if batch:
                         connection.executemany("""
                             INSERT OR REPLACE INTO segmentless
                             (imdb_id,is_movie,season,episode,segment,updated_at)
                             VALUES (?,?,?,?,?,?)
                         """, batch)
+                    if rows_seen and not rows_accepted:
+                        raise ValueError("segmentless.csv.gz contains no usable confirmation rows")
+
+            # Build the lookup index after bulk insertion for a faster first sync.
+            connection.execute("""
+                CREATE INDEX idx_segments_lookup
+                ON segments(imdb_id, is_movie, season, episode, segment)
+            """)
             connection.commit()
-            count = connection.execute("SELECT COUNT(*) FROM segments").fetchone()[0]
-            if count < 1:
-                raise ValueError("IntroDB snapshot contains no usable segment rows")
-            tools.log("Built local IntroDB index with {} live segment rows".format(count), "info")
+
+            segment_count = connection.execute("SELECT COUNT(*) FROM segments").fetchone()[0]
+            segmentless_count = connection.execute("SELECT COUNT(*) FROM segmentless").fetchone()[0]
+            if segment_count + segmentless_count < 1:
+                raise ValueError("IntroDB snapshot contains no usable rows")
+
+            integrity = connection.execute("PRAGMA quick_check(1)").fetchone()
+            if not integrity or integrity[0] != "ok":
+                raise ValueError("IntroDB SQLite index failed its integrity check")
+
+            tools.log(
+                "Built local IntroDB index with {} timestamp rows and {} confirmed-absent rows".format(
+                    segment_count, segmentless_count
+                ),
+                "info",
+            )
         finally:
             connection.close()
 
