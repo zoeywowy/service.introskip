@@ -1,53 +1,47 @@
-# How IntroSkip finds something to skip
+# How IntroSkip detects segments
 
-IntroSkip combines three independent foundations: the community-published **IntroDB** dataset and API, the second community source **TheIntroDB v4**, and chapter markers exposed by **Kodi 22**.
+IntroSkip combines three independent sources: **IntroDB**, **TheIntroDB v4**, and **Kodi 22 native chapters**. **Cinemeta** resolves the playing title to an IMDb ID so the community sources can be queried.
 
-## 1. Identify the playing title
+## 1. Identify the playing item
 
-Kodi provides the title and media type from the currently playing item, plus season and episode numbers for TV. If necessary, IntroSkip may work out a title from the filename.
+Kodi supplies the media type, title and, for TV, season and episode. If the title tag is unavailable, IntroSkip can try the filename. Cinemeta checks the title, media type and movie year when available. Ambiguous matches are rejected.
 
-IntroSkip searches **Cinemeta** for a matching movie or TV series. It checks title, media type and movie year when available, and refuses uncertain matches. Cinemeta supplies an IMDb ID. IntroSkip does not query OMDb or perform Kodi library ID lookups.
+IntroSkip does not use OMDb, Kodi library-ID searches or provider API keys.
 
-## 2. IntroDB: local full-database lookup
+## 2. IntroDB: daily local data
 
-IntroDB publishes a daily open-data snapshot:
+IntroDB publishes a daily open-data snapshot containing live segment timestamps and confirmed segmentless entries.
 
-- `manifest.json` identifies the snapshot and the compressed data files.
-- `segments.csv.gz` contains all live episode/movie timestamp rows, including segment type, boundaries, confidence and submission count.
-- `segmentless.csv.gz` records episodes the community has confirmed do not contain an intro, recap or outro.
+At Kodi startup, IntroSkip checks the small manifest in the background. It downloads the compressed CSV files only when the manifest changes, verifies their SHA-256 checksums and builds a local SQLite index. The index is integrity-checked before use. If a download fails, the previous valid database remains available.
 
-At Kodi startup, IntroSkip checks the small manifest in a background thread. It downloads and verifies the compressed CSV files only when the manifest changes, then builds an indexed SQLite database under the add-on profile. The existing local database remains usable if the network is unavailable or a download fails.
+When a title is playing, its IMDb ID and episode coordinates are looked up locally. The single-item IntroDB API is the fallback when the snapshot is unavailable or has no record for that item.
 
-When a title is playing, IntroSkip looks up its IMDb ID and episode coordinates locally. The single-episode IntroDB API remains a fallback if the local snapshot is not yet available or has no record for that item.
+## 3. TheIntroDB v4: independent live data
 
-Contains data from IntroDB (introdb.app), available under the ODbL.
+IntroSkip also queries TheIntroDB v4 with the IMDb ID, episode coordinates and actual playback duration. The API prefers TVDB identity but supports IMDb as a fallback. Duration matching helps select the closest release version.
 
-## 3. TheIntroDB v4: independent live source
+The adapter preserves multiple valid intro, recap, credits and preview intervals. Responses are cached locally for seven days. A failure or missing record from this source does not stop the other detectors.
 
-IntroSkip also queries `https://api.theintrodb.org/v4/media` using the verified IMDb ID, season/episode when applicable, and the actual playback duration. The v4 API prefers TVDB identity, but it supports IMDb IDs as a slower fallback; IntroSkip does not introduce a Kodi library-ID lookup to obtain TVDB IDs.
+## 4. Kodi 22 chapters: local file information
 
-Duration matching helps the API choose the closest release version, such as a theatrical or extended cut. The adapter preserves every valid interval returned for intros, recaps and credits, and can expose optional **Skip Preview** prompts. API responses are cached locally for seven days to avoid repeatedly requesting the same media.
+Kodi's `Player.GetChapters` API exposes chapter indexes, names and start positions in seconds. IntroSkip recognizes clear labels such as opening credits, recap and end credits. Adjacent named opening chapters can be combined when safe.
 
-The API is an additional source, not a dependency: a timeout, rate limit, missing record or malformed response must never stop IntroDB or Kodi chapter detection.
+Chapter information depends on the actual file, container and player. Some streams expose no chapters.
 
-## 4. Kodi 22 native chapters
+## 5. Choose the best evidence
 
-Independently of both online sources, IntroSkip reads chapter data from Kodi 22 when the player provides it. Clear chapter names such as opening credits, recaps or end credits may provide local skip boundaries. Adjacent named opening chapters may be combined where appropriate.
+- Explicitly named Kodi chapters describe the playing file and have the highest priority.
+- IntroDB and TheIntroDB are compared using release-duration match, confidence and submission count.
+- All distinct intervals from the selected community source are retained.
+- Unnamed chapter heuristics are confirmation-only.
+- **Ask** is the default. **Auto** is restricted to qualifying IntroDB data and the existing safety checks. TheIntroDB and chapter-only matches never trigger automatic seeking.
 
-Chapters depend on the actual video, container and player. They are not guaranteed to exist.
+Movie credits are treated conservatively to avoid skipping a known post-credit scene.
 
-## 5. Resolve conflicts and display the button
+## Data and privacy
 
-- Explicit Kodi chapter labels are strongest because they describe the actual file being played.
-- Community sources are compared using release-duration match, confidence and submission count.
-- Every distinct interval from the selected provider is retained; a credits sequence can therefore contain more than one skippable interval.
-- Unnamed chapter heuristics remain Ask-only.
-- The default behavior is **Ask**. Auto-skip remains limited to qualifying IntroDB evidence and the existing safety checks; TheIntroDB and chapter guesses do not silently trigger automatic seeking.
+IntroDB's local index and TheIntroDB's cache contain public timestamp data, not a personal library or viewing history. IntroSkip does not inspect subtitles.
 
-If no provider has a trustworthy interval, IntroSkip shows no button rather than inventing a timestamp.
+IntroDB data is published under ODbL 1.0. Attribution: **"Contains data from IntroDB (introdb.app), available under the ODbL."**
 
-## What IntroSkip does not do
-
-It does not read or download subtitles, use subtitle phrase detection, require an OMDb/TVDB API key for reads, or maintain a personal viewing history. The local SQLite database is the public IntroDB snapshot, not a database of the user's library or watched titles.
-
-If a provider does not expose enough information, it is normal for IntroSkip to show no button. See [Troubleshooting](TROUBLESHOOTING.md).
+[IntroDB open data](https://api.introdb.app/open-data/) · [IntroDB API](https://api.introdb.app/) · [TheIntroDB API](https://theintrodb.org/docs)
