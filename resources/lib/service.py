@@ -178,7 +178,7 @@ def run():
     
             segments = player.get_segments()
             dialog = player.get_dialog()
-            if active_key:
+            if active_key and dialog is not None:
                 active_kind, active_start, active_end = active_key
                 current_ranges = segments.get(active_kind, [])
                 current = None
@@ -265,6 +265,9 @@ def run():
                         modal_blocked = True
                         break
                     try:
+                        dialog = player.get_dialog(create=True)
+                        if dialog is None:
+                            continue
                         dialog.configure(kind, end, start)
                         dialog.show()
                         active_key = segment_key
