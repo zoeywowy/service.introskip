@@ -13,7 +13,7 @@ class IntroDBAdapter(PointsAdapter):
 
     BASE_URL = "https://api.introdb.app/segments"
 
-    def __init__(self, timeout=6):
+    def __init__(self, timeout=3):
         self.timeout = timeout
 
     def get_episode_data(self, imdb, season, episode):
