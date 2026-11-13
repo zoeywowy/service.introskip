@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import xbmc
 import threading
+import time
 import os
 import re
 from urllib.parse import unquote, urlsplit
@@ -31,6 +32,7 @@ class Player(xbmc.Player):
         self.identifier = Identifier()
         self._state_lock = threading.RLock()
         self._shutdown_event = threading.Event()
+        self._workers = set()
         self._requested_keys = set()
         self._network_results = {}
         self._episode_key = None
@@ -292,20 +294,33 @@ class Player(xbmc.Player):
         return msg
 
     def _launch_introdb(self, key, title='', year=None, duration_ms=0):
-        """Resolve metadata and community sources off the Kodi service thread."""
+        """Launch at most one lookup per playback key, without delaying Kodi."""
         if self._shutdown_event.is_set() or not title:
-            tools.log('No playing title available for Cinemeta; Kodi chapters remain enabled', 'info')
             return
         with self._state_lock:
-            if key in self._requested_keys:
+            if self._shutdown_event.is_set() or key in self._requested_keys:
                 return
             self._requested_keys.add(key)
-        threading.Thread(
-            target=self._introdb_worker,
-            args=(key, title, year, duration_ms),
-            name='IntroSkip-MultiSource',
-            daemon=True,
-        ).start()
+            worker = threading.Thread(
+                target=self._run_introdb_worker,
+                args=(key, title, year, duration_ms),
+                name='IntroSkip-MultiSource',
+                daemon=True,
+            )
+            self._workers.add(worker)
+            try:
+                worker.start()
+            except Exception:
+                self._workers.discard(worker)
+                self._requested_keys.discard(key)
+                raise
+
+    def _run_introdb_worker(self, key, title, year, duration_ms):
+        try:
+            self._introdb_worker(key, title, year, duration_ms)
+        finally:
+            with self._state_lock:
+                self._workers.discard(threading.current_thread())
 
     def _introdb_worker(self, key, title='', year=None, duration_ms=0):
         """Fetch the local IntroDB index and TheIntroDB v4 without blocking playback."""
@@ -584,6 +599,18 @@ class Player(xbmc.Player):
             self._network_results.clear()
             self._requested_keys.clear()
             self._pending_notification = None
+            workers = list(self._workers)
+        # Kodi waits for *all* Python thread states (even daemon threads) when
+        # reloading a service add-on. Allow the interrupted three-second HTTP
+        # request to exit, but never block the GUI's five-second deadline.
+        deadline = time.monotonic() + 3.25
+        for worker in workers:
+            if worker is threading.current_thread():
+                continue
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            worker.join(timeout=remaining)
         dialog = self.dialog
         self.dialog = None
         if dialog is not None:
