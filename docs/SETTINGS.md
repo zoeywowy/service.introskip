@@ -1,37 +1,40 @@
 # IntroSkip settings
 
-Open **Kodi → Add-ons → My add-ons → Services → IntroSkip → Configure**.
+Open **Add-ons → My add-ons → Services → IntroSkip → Configure**.
 
 ## Detection
 
-Choose which segments IntroSkip should look for:
+Enable the segment types you want IntroSkip to find.
 
-| Option | Default |
+| Setting | Default |
 | --- | --- |
 | Intros | On |
 | Recaps | Off |
 | Previews | Off |
-| TV outros / credits | Off |
+| TV credits | Off |
 | Movie credits | Off |
 | Detection notifications | On |
 
-Kodi 22 chapter detection and IntroDB remain available automatically. There is no switch to select one detection source over the other.
+IntroDB, TheIntroDB and Kodi 22 chapter detection work automatically. There is no source-selection switch.
 
 ## Skip behavior
 
-Choose **Ask** or **Auto** separately for intros, recaps, previews, TV credits and movie credits.
+Choose **Ask** or **Auto** separately for each enabled segment type.
 
-- **Ask** (default): shows a button so you decide whether to skip.
-- **Auto**: skips only when the segment passes the safety checks. A named chapter alone is **not** enough for an automatic skip. Film credits are handled conservatively because of possible post-credit scenes.
+- **Ask** (default): display a skip button so you decide.
+- **Auto:** automatically seek only when the segment qualifies for the conservative IntroDB safety policy.
 
-If you are testing a new video source, start with **Ask**.
+TheIntroDB and Kodi chapter matches remain confirmation-only, even when Auto is selected. Movie credits also remain manual unless post-credit information makes the skip boundary safe.
 
 ## Button appearance
 
-Choose a **Light** or **Dark** theme; each has its own remembered button color. Adjust position, size, style (Pill, Soft or Flat) and content. **Preview button** lets you check the appearance, and **Reset layout** restores the default placement.
+Choose a **Light** or **Dark** theme. Each theme remembers its own color. You can also change:
 
-## What was removed
+- Position: bottom-right, bottom-left, top-right or top-left
+- Size: small, normal or large
+- Style: Pill, Soft or Flat
+- Contents: icon and text, text only or icon only
 
-Version 0.0.25 no longer includes an Advanced tab, OMDb API key, chapter-inspector button, playback diagnostics action, subtitle detection, or a manual timestamp editor. The public IntroDB snapshot is stored locally and checked against the daily manifest; TheIntroDB API responses are cached for seven days. Neither cache stores a personal viewing history.
+Use **Preview button** to see the current design. **Reset button appearance** restores the defaults.
 
-If you need help with a missing button or bad timestamps, see [Troubleshooting](TROUBLESHOOTING.md).
+For missing buttons or inaccurate timestamps, see [Troubleshooting](TROUBLESHOOTING.md).
