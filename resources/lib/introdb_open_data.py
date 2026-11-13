@@ -7,18 +7,17 @@ local database remains available when the network is offline.
 import csv
 import gzip
 import hashlib
-import io
 import json
 import math
 import os
 import re
 import sqlite3
 import threading
+import time
 
-import requests
 import xbmcvfs
 
-from resources.lib import settings, tools
+from resources.lib import http_client, settings, tools
 
 
 class IntroDBOpenDataAdapter:
@@ -27,7 +26,7 @@ class IntroDBOpenDataAdapter:
     FILE_NAMES = ("segments.csv.gz", "segmentless.csv.gz")
     IMDB_PATTERN = re.compile(r"^tt[0-9]{7,10}$", re.I)
 
-    def __init__(self, profile_path=None, timeout=15):
+    def __init__(self, profile_path=None, timeout=8):
         if profile_path is None:
             profile_path = xbmcvfs.translatePath(settings.get_addon_info("profile"))
         self.data_dir = os.path.join(str(profile_path), "introdb-open-data")
@@ -39,9 +38,12 @@ class IntroDBOpenDataAdapter:
         self._db_validation_lock = threading.Lock()
         self._db_validated = False
         self._db_is_valid = False
+        self._cancel_event = threading.Event()
 
     def start_background_sync(self):
-        """Check the daily manifest without delaying Kodi startup or playback."""
+        """Start a cancellable background refresh when Kodi is idle."""
+        if self._cancel_event.is_set():
+            return None
         if self._sync_thread is not None and self._sync_thread.is_alive():
             return self._sync_thread
         self._sync_thread = threading.Thread(
@@ -51,6 +53,10 @@ class IntroDBOpenDataAdapter:
         )
         self._sync_thread.start()
         return self._sync_thread
+
+    def cancel_sync(self):
+        """Ask an in-progress download or database build to stop promptly."""
+        self._cancel_event.set()
 
     @property
     def is_ready(self):
@@ -68,16 +74,12 @@ class IntroDBOpenDataAdapter:
                 connection = None
                 try:
                     connection = sqlite3.connect(self.db_path, timeout=2)
-                    check = connection.execute("PRAGMA quick_check(1)").fetchone()
                     tables = {
                         row[0] for row in connection.execute(
                             "SELECT name FROM sqlite_master WHERE type='table'"
                         ).fetchall()
                     }
-                    valid = bool(
-                        check and check[0] == "ok"
-                        and {"segments", "segmentless"}.issubset(tables)
-                    )
+                    valid = {"segments", "segmentless"}.issubset(tables)
                 except sqlite3.Error:
                     valid = False
                 finally:
@@ -89,20 +91,26 @@ class IntroDBOpenDataAdapter:
             return valid
 
     def sync_if_needed(self):
-        """Download and atomically replace the local index only when changed."""
-        if not self._sync_lock.acquire(False):
+        """Stream the daily export to disk and atomically replace the local index."""
+        if self._cancel_event.is_set() or not self._sync_lock.acquire(False):
             return False
+
         temp_db = self.db_path + ".tmp"
+        download_paths = []
         try:
             os.makedirs(self.data_dir, exist_ok=True)
-            response = requests.get(self.MANIFEST_URL, timeout=self.timeout)
-            response.raise_for_status()
-            manifest_bytes = response.content
+            manifest_bytes = http_client.get_bytes(
+                self.MANIFEST_URL, timeout=min(self.timeout, 5)
+            )
+            if self._cancel_event.is_set():
+                raise http_client.DownloadCancelled()
             manifest = json.loads(manifest_bytes.decode("utf-8-sig"))
             if not isinstance(manifest, dict):
                 raise ValueError("IntroDB manifest is not a JSON object")
             remote_hash = hashlib.sha256(manifest_bytes).hexdigest()
 
+            # A schema check is intentionally cheap. Full integrity checking is
+            # performed only on a newly built temporary database, not playback.
             if self.is_ready and os.path.isfile(self.manifest_path):
                 try:
                     with open(self.manifest_path, "rb") as handle:
@@ -113,20 +121,32 @@ class IntroDBOpenDataAdapter:
                 except OSError:
                     pass
 
-            payloads = {}
+            payload_paths = {}
             for filename in self.FILE_NAMES:
+                if self._cancel_event.is_set():
+                    raise http_client.DownloadCancelled()
                 info = self._file_metadata(manifest, filename)
                 url = self.BASE_URL + filename
-                file_response = requests.get(url, timeout=self.timeout)
-                file_response.raise_for_status()
-                payload = file_response.content
-                expected_sha = self._metadata_value(info, ("sha256", "sha_256", "checksum"))
+                download_path = os.path.join(self.data_dir, filename + ".download")
+                download_paths.append(download_path)
+                try:
+                    os.remove(download_path)
+                except OSError:
+                    pass
+
+                downloaded_size, actual_sha = http_client.download_to_file(
+                    url, download_path, timeout=self.timeout,
+                    cancel_event=self._cancel_event,
+                )
+                expected_sha = self._metadata_value(
+                    info, ("sha256", "sha_256", "checksum")
+                )
                 expected_sha = str(expected_sha or "").lower().replace("sha256:", "").strip()
                 if not re.fullmatch(r"[0-9a-f]{64}", expected_sha):
                     raise ValueError("Manifest is missing a valid SHA-256 for {}".format(filename))
-                actual_sha = hashlib.sha256(payload).hexdigest()
                 if actual_sha != expected_sha:
                     raise ValueError("{} failed SHA-256 verification".format(filename))
+
                 expected_size = self._metadata_value(
                     info, ("compressed_size", "size_bytes", "bytes", "size")
                 )
@@ -135,23 +155,27 @@ class IntroDBOpenDataAdapter:
                         expected_size = int(expected_size)
                     except (TypeError, ValueError):
                         expected_size = 0
-                    if expected_size > 0 and expected_size != len(payload):
+                    if expected_size > 0 and expected_size != downloaded_size:
                         tools.log(
                             "{} size differs from manifest ({} vs {}); SHA-256 remains authoritative".format(
-                                filename, len(payload), expected_size
+                                filename, downloaded_size, expected_size
                             ),
                             "warning",
                         )
-                # Reading to EOF verifies the gzip trailer/CRC before the old
-                # database can be replaced.
-                with gzip.GzipFile(fileobj=io.BytesIO(payload), mode="rb") as stream:
-                    while stream.read(1024 * 256):
-                        pass
-                payloads[filename] = payload
+                payload_paths[filename] = download_path
 
-            if os.path.exists(temp_db):
+            if self._cancel_event.is_set():
+                raise http_client.DownloadCancelled()
+            try:
                 os.remove(temp_db)
-            self._build_database(temp_db, payloads)
+            except OSError:
+                pass
+            self._build_database(temp_db, payload_paths)
+            if self._cancel_event.is_set():
+                raise http_client.DownloadCancelled()
+
+            # The previous database stays in place until the complete new index
+            # has passed schema and integrity validation.
             os.replace(temp_db, self.db_path)
             with self._db_validation_lock:
                 self._db_validated = False
@@ -167,15 +191,25 @@ class IntroDBOpenDataAdapter:
                 "info",
             )
             return True
-        except (requests.exceptions.RequestException, ValueError, OSError, sqlite3.Error, EOFError) as exc:
-            tools.log("IntroDB open-data sync failed; retaining previous local data: {}".format(exc), "warning")
-            try:
-                if os.path.exists(temp_db):
-                    os.remove(temp_db)
-            except OSError:
-                pass
+        except http_client.DownloadCancelled:
+            tools.log("IntroDB open-data sync cancelled", "debug")
+            return False
+        except (http_client.HTTPError, ValueError, OSError, sqlite3.Error, EOFError) as exc:
+            tools.log(
+                "IntroDB open-data sync failed; retaining previous local data: {}".format(exc),
+                "warning",
+            )
             return False
         finally:
+            for path in download_paths:
+                try:
+                    os.remove(path)
+                except OSError:
+                    pass
+            try:
+                os.remove(temp_db)
+            except OSError:
+                pass
             self._sync_lock.release()
 
     @staticmethod
@@ -230,12 +264,16 @@ class IntroDBOpenDataAdapter:
         value = str(value or "").strip().lower().replace("-", "_")
         return "post_credits" if value in ("post_credits", "postcredits") else value
 
-    def _build_database(self, path, payloads):
+    def _build_database(self, path, payload_paths):
         """Build a complete, validated SQLite index from the two documented CSV exports."""
         connection = sqlite3.connect(path)
         try:
-            connection.execute("PRAGMA journal_mode=DELETE")
-            connection.execute("PRAGMA synchronous=FULL")
+            # This temporary database can be rebuilt if interrupted; keep the
+            # existing verified database untouched until the replacement passes.
+            connection.execute("PRAGMA journal_mode=OFF")
+            connection.execute("PRAGMA synchronous=OFF")
+            connection.execute("PRAGMA temp_store=MEMORY")
+            connection.execute("PRAGMA cache_size=-4096")
             connection.execute("""
                 CREATE TABLE segments (
                     id INTEGER PRIMARY KEY,
@@ -263,9 +301,8 @@ class IntroDBOpenDataAdapter:
                 )
             """)
 
-            with gzip.GzipFile(fileobj=io.BytesIO(payloads["segments.csv.gz"]), mode="rb") as zipped:
-                with io.TextIOWrapper(zipped, encoding="utf-8-sig", newline="") as source:
-                    reader = csv.DictReader(source)
+            with gzip.open(payload_paths["segments.csv.gz"], "rt", encoding="utf-8-sig", newline="") as source:
+                reader = csv.DictReader(source)
                     required = {
                         "imdb_id", "is_movie", "season", "episode",
                         "segment", "start_ms", "end_ms",
@@ -278,6 +315,8 @@ class IntroDBOpenDataAdapter:
                     rows_accepted = 0
                     for row in reader:
                         rows_seen += 1
+                        if rows_seen % 2000 == 0 and self._cancel_event.is_set():
+                            raise http_client.DownloadCancelled()
                         imdb_id = str(row.get("imdb_id") or "").strip().lower()
                         is_movie = self._boolean(row.get("is_movie"))
                         season = self._integer(row.get("season"), -1)
@@ -327,6 +366,7 @@ class IntroDBOpenDataAdapter:
                                 VALUES (?,?,?,?,?,?,?,?,?,?)
                             """, batch)
                             batch = []
+                            time.sleep(0.003)
 
                     if batch:
                         connection.executemany("""
@@ -338,9 +378,8 @@ class IntroDBOpenDataAdapter:
                     if rows_seen and not rows_accepted:
                         raise ValueError("segments.csv.gz contains no usable timestamp rows")
 
-            with gzip.GzipFile(fileobj=io.BytesIO(payloads["segmentless.csv.gz"]), mode="rb") as zipped:
-                with io.TextIOWrapper(zipped, encoding="utf-8-sig", newline="") as source:
-                    reader = csv.DictReader(source)
+            with gzip.open(payload_paths["segmentless.csv.gz"], "rt", encoding="utf-8-sig", newline="") as source:
+                reader = csv.DictReader(source)
                     required = {"imdb_id", "is_movie", "season", "episode", "segment"}
                     if not reader.fieldnames or not required.issubset(set(reader.fieldnames)):
                         raise ValueError("segmentless.csv.gz is missing required columns")
@@ -378,6 +417,7 @@ class IntroDBOpenDataAdapter:
                             (imdb_id,is_movie,season,episode,segment,updated_at)
                             VALUES (?,?,?,?,?,?)
                         """, batch)
+                        batch = []
                     if rows_seen and not rows_accepted:
                         raise ValueError("segmentless.csv.gz contains no usable confirmation rows")
 
@@ -386,6 +426,8 @@ class IntroDBOpenDataAdapter:
                 CREATE INDEX idx_segments_lookup
                 ON segments(imdb_id, is_movie, season, episode, segment)
             """)
+            if self._cancel_event.is_set():
+                raise http_client.DownloadCancelled()
             connection.commit()
 
             segment_count = connection.execute("SELECT COUNT(*) FROM segments").fetchone()[0]
