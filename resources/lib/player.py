@@ -30,6 +30,7 @@ class Player(xbmc.Player):
         self._media_type = None
         self.identifier = Identifier()
         self._state_lock = threading.RLock()
+        self._shutdown_event = threading.Event()
         self._requested_keys = set()
         self._network_results = {}
         self._episode_key = None
@@ -299,7 +300,7 @@ class Player(xbmc.Player):
 
     def _launch_introdb(self, key, title='', year=None, duration_ms=0):
         """Resolve metadata and community sources off the Kodi service thread."""
-        if not title:
+        if self._shutdown_event.is_set() or not title:
             tools.log('No playing title available for Cinemeta; Kodi chapters remain enabled', 'info')
             return
         with self._state_lock:
@@ -325,6 +326,8 @@ class Player(xbmc.Player):
         if not imdb:
             tools.log('No verified Cinemeta ID for {!r}; using Kodi chapters only'.format(title), 'info')
             return
+        if self._shutdown_event.is_set():
+            return
         with self._state_lock:
             if gen != self.playback_generation:
                 return
@@ -344,6 +347,8 @@ class Player(xbmc.Player):
         except Exception as exc:
             tools.log('Local IntroDB lookup failed: {}'.format(type(exc).__name__), 'warning')
             bulk_data = None
+        if self._shutdown_event.is_set():
+            return
         if bulk_data is not None:
             providers.append(('introdb', bulk_data, 'open-data'))
         else:
@@ -358,9 +363,13 @@ class Player(xbmc.Player):
             except Exception as exc:
                 tools.log('IntroDB API fallback failed: {}'.format(type(exc).__name__), 'warning')
                 live_data = None
+            if self._shutdown_event.is_set():
+                return
             if isinstance(live_data, dict):
                 providers.append(('introdb', live_data, 'api'))
 
+        if self._shutdown_event.is_set():
+            return
         # TheIntroDB is an independent community source. IMDb is supported as
         # a fallback identity; duration_ms helps select the closest release cut.
         try:
@@ -370,6 +379,8 @@ class Player(xbmc.Player):
         except Exception as exc:
             tools.log('TheIntroDB worker request failed: {}'.format(type(exc).__name__), 'warning')
             theintrodb_data = None
+        if self._shutdown_event.is_set():
+            return
         if isinstance(theintrodb_data, dict):
             providers.append(('theintrodb', theintrodb_data, 'v4'))
 
@@ -568,6 +579,22 @@ class Player(xbmc.Player):
             except Exception as exc:
                 tools.log('Delayed {} chapter classification failed: {}'.format(kind, exc), 'warning')
         return updated
+
+    def shutdown(self):
+        """Release UI resources and cancel all background work without waiting."""
+        self._shutdown_event.set()
+        try:
+            self.identifier.introdb_open_data.cancel_sync()
+        except Exception:
+            pass
+        with self._state_lock:
+            self._network_results.clear()
+            self._requested_keys.clear()
+            self._pending_notification = None
+        try:
+            self.dialog.close()
+        except Exception:
+            pass
 
     def onPlayBackStopped(self):
         tools.log("onPlaybackStopped", "debug")
