@@ -155,7 +155,8 @@ class ServiceLifecycleTests(unittest.TestCase):
 
     def test_playback_dialog_releases_native_player_reference(self):
         player = Player()
-        dialog = player.get_dialog()
+        self.assertIsNone(player.get_dialog())
+        dialog = player.get_dialog(create=True)
         self.assertIs(dialog.player, player)
         self.assertIs(player.get_dialog(), dialog)
         dialog.show()
@@ -165,6 +166,20 @@ class ServiceLifecycleTests(unittest.TestCase):
         self.assertFalse(dialog._is_open)
         self.assertEqual(dialog.close_count, 1)
         self.assertIsNone(player.get_dialog())
+
+    def test_native_gui_is_not_needed_for_playback_setup(self):
+        player = Player()
+        original_launch = player._launch_introdb
+        original_chapters = player._read_local_chapters
+        try:
+            player._launch_introdb = lambda *args, **kwargs: None
+            player._read_local_chapters = lambda *args, **kwargs: None
+            player.onAVStarted()
+            self.assertIsNone(player.dialog)
+        finally:
+            player._launch_introdb = original_launch
+            player._read_local_chapters = original_chapters
+            player.shutdown()
 
     def test_playback_worker_exits_on_shutdown(self):
         player = Player()
