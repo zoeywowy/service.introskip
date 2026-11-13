@@ -65,12 +65,14 @@ class Control:
 class WindowXMLDialog:
     def __init__(self,*args,**kwargs):
         self.controls=[];self.properties={};self.focus=None
+        self.show_count=0;self.close_count=0
     def addControl(self,c):self.controls.append(c)
     def removeControl(self,c):self.controls.remove(c)
     def setFocus(self,c):self.focus=c
     def setProperty(self,k,v):self.properties[k]=v
     def getProperty(self,k):return self.properties.get(k,'')
-    def close(self):pass
+    def show(self):self.show_count+=1
+    def close(self):self.close_count+=1
 
 xbmc=types.ModuleType('xbmc')
 xbmc.Player=FakeKodiPlayer
@@ -124,6 +126,24 @@ class KodiNativeMonitorTests(unittest.TestCase):
             json.dumps({"property": {"chapter": 2}})
         )
         self.assertEqual(monitor.take_changes(), set())
+
+
+class DialogLifecycleTests(unittest.TestCase):
+    def test_close_is_noop_until_dialog_has_been_shown(self):
+        dialog = IntroSkipDialog("intro_skip_dialog.xml", str(BASE))
+        dialog.close()
+        self.assertEqual(dialog.close_count, 0)
+        self.assertFalse(dialog._is_open)
+
+    def test_shown_dialog_closes_once(self):
+        dialog = IntroSkipDialog("intro_skip_dialog.xml", str(BASE))
+        dialog.show()
+        self.assertTrue(dialog._is_open)
+        dialog.close()
+        self.assertFalse(dialog._is_open)
+        self.assertEqual(dialog.close_count, 1)
+        dialog.close()
+        self.assertEqual(dialog.close_count, 1)
 
 
 class HTTPClientTests(unittest.TestCase):
@@ -216,6 +236,12 @@ class PackageTests(unittest.TestCase):
         for module in ('cinemeta.py','introdb.py','introdb_open_data.py','theintrodb.py'):
             source=(BASE/'resources/lib'/module).read_text()
             self.assertNotIn('import requests',source)
+    def test_network_timeouts_are_bounded_for_service_shutdown(self):
+        modules = ('http_client.py','cinemeta.py','introdb.py','theintrodb.py','introdb_open_data.py')
+        for module in modules:
+            source=(BASE/'resources/lib'/module).read_text()
+            self.assertIn('timeout=3',source,module)
+
     def test_settings_no_advanced_or_diagnostics(self):
         root=ET.parse(BASE/'resources/settings.xml').getroot()
         cats=root.findall('category')
