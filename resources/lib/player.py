@@ -40,18 +40,6 @@ class Player(xbmc.Player):
             "intro_skip_dialog.xml", _addon_path, "Default", "1080i", player=self
         )
 
-    def reset_intro(self):
-        self.intro = None
-
-    def get_intro(self):
-        return self.intro
-
-    def get_outro(self):
-        return self.outro
-
-    def get_recap(self):
-        return self.recap
-
     def get_dialog(self):
         return self.dialog
 
@@ -130,7 +118,6 @@ class Player(xbmc.Player):
             self.segment_evidence = {}
             self._segment_ranges = {}
             self._segment_range_evidence = {}
-            self.identifier.segment_evidence.clear()
             self.identifier.chapter_adapter = ChaptersAdapter()
             self._episode_key = None
             self._network_results.clear()
@@ -604,7 +591,7 @@ class Player(xbmc.Player):
             pass
 
         with self._state_lock:
-            self.reset_intro()
+            self.intro = None
             self.outro = None
             self.recap = None
             self.movie_outro = None
