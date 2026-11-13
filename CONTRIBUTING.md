@@ -1,22 +1,40 @@
-# Contributing to IntroSkip
+# Contributing
 
-Thanks for helping make IntroSkip better. Start with a [GitHub issue](https://github.com/zoeywowy/service.introskip/issues) and explain the problem, your Kodi build/device and how to reproduce it.
+Thanks for helping improve IntroSkip. Before making a change, open a [GitHub issue](https://github.com/zoeywowy/service.introskip/issues) with the problem, Kodi build and steps to reproduce.
 
-## Development focus
+## Project scope
 
-IntroSkip targets **Kodi 22**. Keep changes small and testable, especially around timing, player state and Kodi APIs.
+IntroSkip targets **Kodi 22**. Keep changes focused, testable and compatible with Kodi's Python runtime.
 
-Detection uses **IntroDB** and **named Kodi chapters**; Cinemeta identifies titles for IntroDB. Preserve Ask/Auto safeguards, chapter priority and button customization. Please do not reintroduce subtitle parsing, subtitle caches, OMDb/TVDB keys or persistent cross-episode timestamp caches without a deliberate feature decision.
+The detection pipeline consists of:
 
-## Test your changes
+- Cinemeta for keyless title identification
+- IntroDB daily open data, local SQLite lookup and live API fallback
+- TheIntroDB v4 as an independent community source
+- Kodi 22 native chapter metadata
+
+Preserve chapter priority, multiple intervals, post-credit safeguards, per-segment Ask/Auto behavior and button customization.
+
+Do not reintroduce subtitle parsing, OMDb credentials, Kodi library-ID scraping, playback diagnostics or persistent cross-episode timestamp caches without an explicit feature decision.
+
+## Run the tests
+
+Run the two suites in separate processes because they install different Kodi stubs:
 
 ```bash
 python -m unittest discover -s tests -p 'test_023_integration.py' -v
 python -m unittest discover -s tests -p 'test_023_chapters.py' -v
 python build_zip.py
-python tools/build_kodi_repository.py
 ```
 
-Run the test suites in separate processes; they use different Kodi stubs. Check XML syntax, ZIP folder structure and, when possible, real Kodi 22 playback.
+The build writes the Kodi-installable service ZIP to `dist/`. The repository feed is built separately in [repository.introskip](https://github.com/zoeywowy/repository.introskip).
 
-Do not commit generated `dist/` files, private Kodi settings, personal information, tokens or streaming URLs. Keep existing contributor credits and the [Apache 2.0 license](LICENSE).
+## Before submitting
+
+- Validate Python and XML syntax.
+- Add or update tests for behavior changes.
+- Increment the add-on version for every installable code release.
+- Update `CHANGELOG.md` and relevant user documentation.
+- Do not commit generated ZIPs, private Kodi settings, credentials, personal information or private streaming URLs.
+
+IntroSkip is licensed under [Apache 2.0](LICENSE).
