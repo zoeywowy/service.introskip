@@ -55,15 +55,16 @@ class Player(xbmc.Player):
         return self.dialog
 
     def get_segments(self):
-        """Return every currently selected interval, preserving multi-range providers."""
-        result = {}
-        for kind in ("recap", "intro", "preview", "outro", "movie_outro"):
-            ranges = self._segment_ranges.get(kind)
-            if not ranges:
-                current = getattr(self, kind, None)
-                ranges = [current] if current else []
-            result[kind] = list(ranges)
-        return result
+        """Return a thread-safe snapshot of every currently selected interval."""
+        with self._state_lock:
+            result = {}
+            for kind in ("recap", "intro", "preview", "outro", "movie_outro"):
+                ranges = self._segment_ranges.get(kind)
+                if not ranges:
+                    current = getattr(self, kind, None)
+                    ranges = [current] if current else []
+                result[kind] = list(ranges)
+            return result
 
     @staticmethod
     def _range_key(bounds):
@@ -78,68 +79,75 @@ class Player(xbmc.Player):
         """Remove one handled interval, or clear all intervals of a type."""
         if kind not in ("intro", "recap", "preview", "outro", "movie_outro", "post_credits"):
             return
-        if bounds is None:
-            self._segment_ranges.pop(kind, None)
-            self._segment_range_evidence.pop(kind, None)
-            self.segment_evidence.pop(kind, None)
-            setattr(self, kind, None)
-            return
-        key = self._range_key(bounds)
-        ranges = self._segment_ranges.get(kind, [])
-        remaining = [item for item in ranges if self._range_key(item) != key]
-        self._segment_ranges[kind] = remaining
-        evidence = self._segment_range_evidence.get(kind, {})
-        if key is not None:
-            evidence.pop(key, None)
-        if remaining:
-            setattr(self, kind, remaining[0])
-            first_key = self._range_key(remaining[0])
-            self.segment_evidence[kind] = evidence.get(first_key, self.segment_evidence.get(kind, {}))
-        else:
-            setattr(self, kind, None)
-            self.segment_evidence.pop(kind, None)
+        with self._state_lock:
+            if bounds is None:
+                self._segment_ranges.pop(kind, None)
+                self._segment_range_evidence.pop(kind, None)
+                self.segment_evidence.pop(kind, None)
+                setattr(self, kind, None)
+                return
+
+            key = self._range_key(bounds)
+            ranges = self._segment_ranges.get(kind, [])
+            remaining = [item for item in ranges if self._range_key(item) != key]
+            self._segment_ranges[kind] = remaining
+            evidence = self._segment_range_evidence.get(kind, {})
+            if key is not None:
+                evidence.pop(key, None)
+            if remaining:
+                setattr(self, kind, remaining[0])
+                first_key = self._range_key(remaining[0])
+                self.segment_evidence[kind] = evidence.get(
+                    first_key, self.segment_evidence.get(kind, {})
+                )
+            else:
+                setattr(self, kind, None)
+                self.segment_evidence.pop(kind, None)
 
     def evidence_for(self, kind, bounds=None):
-        if bounds is not None:
-            key = self._range_key(bounds)
-            return self._segment_range_evidence.get(kind, {}).get(
-                key, self.segment_evidence.get(kind, {})
-            )
-        return self.segment_evidence.get(kind, {})
+        with self._state_lock:
+            if bounds is not None:
+                key = self._range_key(bounds)
+                return self._segment_range_evidence.get(kind, {}).get(
+                    key, self.segment_evidence.get(kind, {})
+                )
+            return self.segment_evidence.get(kind, {})
 
     def onPlayBackStarted(self):
         tools.log("onPlayBackStarted", "debug")
-        self.playback_generation += 1
-        self._media_type = None
-        self.reset_intro()
-        self.outro = None
-        self.recap = None
-        self.movie_outro = None
-        self.post_credits = None
-        self.preview = None
-        self.segment_evidence = {}
-        self._segment_ranges = {}
-        self._segment_range_evidence = {}
-        self.identifier.segment_evidence.clear()
         from resources.lib.chapters import ChaptersAdapter
-        self.identifier.chapter_adapter = ChaptersAdapter()
+
+        with self._state_lock:
+            self.playback_generation += 1
+            self._media_type = None
+            self.intro = None
+            self.outro = None
+            self.recap = None
+            self.movie_outro = None
+            self.post_credits = None
+            self.preview = None
+            self.segment_evidence = {}
+            self._segment_ranges = {}
+            self._segment_range_evidence = {}
+            self.identifier.segment_evidence.clear()
+            self.identifier.chapter_adapter = ChaptersAdapter()
+            self._episode_key = None
+            self._network_results.clear()
+            self._requested_keys.clear()
+            self._pending_notification = None
+            self._active_title = ''
+
         try:
             self.dialog.close()
         except Exception:
             pass
-        # Reset dialog state for new episode
+        # Reset dialog state for new episode.
         if hasattr(self.dialog, '_cancelled'):
             self.dialog._cancelled = False
         try:
             self.dialog.setProperty("cancelled", "False")
         except Exception:
             pass
-        with self._state_lock:
-            self._episode_key = None
-            self._network_results.clear()
-            self._requested_keys.clear()
-            self._pending_notification = None
-            self._active_title = ''
 
     @staticmethod
     def _filename_title(media_type, filename):
@@ -372,25 +380,32 @@ class Player(xbmc.Player):
             self._network_results[key] = (imdb, providers, duration_ms)
 
     def apply_ready_network_results(self):
-        """Apply worker results on the Kodi service thread, never in HTTP workers."""
+        """Apply worker results on the service thread, atomically with playback state."""
         with self._state_lock:
             key = self._episode_key
             ready = self._network_results.pop(key, None) if key else None
             if not ready:
                 return False
+            if key[0] != self.playback_generation:
+                return False
+
             imdb, providers, duration_ms = ready
             self._episode_key = (key[0], key[1], imdb, key[3], key[4])
             self._network_results.clear()
-        found = []
-        duration_seconds = duration_ms / 1000.0 if duration_ms else 0.0
-        for source, data, provider in providers:
-            if source == 'introdb':
-                found.extend(self._apply_introdb_data(key[1], data, provider=provider))
-            elif source == 'theintrodb':
-                found.extend(self._apply_theintrodb_data(key[1], data, duration_ms, duration_seconds))
-        if found:
-            self._pending_notification = 'Community data: ' + ', '.join(sorted(set(found)))
-        return bool(providers)
+
+            found = []
+            duration_seconds = duration_ms / 1000.0 if duration_ms else 0.0
+            for source, data, provider in providers:
+                if source == 'introdb':
+                    found.extend(self._apply_introdb_data(key[1], data, provider=provider))
+                elif source == 'theintrodb':
+                    found.extend(self._apply_theintrodb_data(
+                        key[1], data, duration_ms, duration_seconds
+                    ))
+
+            if found:
+                self._pending_notification = 'Community data: ' + ', '.join(sorted(set(found)))
+            return bool(providers)
 
     def _apply_introdb_data(self, media_type, data, provider='api'):
         """Apply every IntroDB interval while retaining chapter precedence."""
@@ -560,20 +575,22 @@ class Player(xbmc.Player):
             self.dialog.close()
         except Exception:
             pass
-        self.reset_intro()
-        self.outro = None
-        self.recap = None
-        self.movie_outro = None
-        self.post_credits = None
-        self.preview = None
-        self._segment_ranges = {}
-        self._segment_range_evidence = {}
-        self._media_type = None
-        self._active_title = ''
-        self.segment_evidence = {}
-        self.playback_generation += 1
+
         with self._state_lock:
+            self.reset_intro()
+            self.outro = None
+            self.recap = None
+            self.movie_outro = None
+            self.post_credits = None
+            self.preview = None
+            self._segment_ranges = {}
+            self._segment_range_evidence = {}
+            self._media_type = None
+            self._active_title = ''
+            self.segment_evidence = {}
+            self.playback_generation += 1
             self._episode_key = None
             self._network_results.clear()
             self._requested_keys.clear()
             self._pending_notification = None
+
