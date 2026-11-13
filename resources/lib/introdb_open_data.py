@@ -39,6 +39,8 @@ class IntroDBOpenDataAdapter:
         self._db_validated = False
         self._db_is_valid = False
         self._cancel_event = threading.Event()
+        self._active_db_lock = threading.Lock()
+        self._active_db = None
 
     def start_background_sync(self):
         """Start a cancellable background refresh when Kodi is idle."""
@@ -55,8 +57,15 @@ class IntroDBOpenDataAdapter:
         return self._sync_thread
 
     def cancel_sync(self):
-        """Ask an in-progress download or database build to stop promptly."""
+        """Cancel network work and interrupt a long SQLite index operation."""
         self._cancel_event.set()
+        with self._active_db_lock:
+            connection = self._active_db
+        if connection is not None:
+            try:
+                connection.interrupt()
+            except sqlite3.Error:
+                pass
 
     @property
     def is_ready(self):
@@ -81,8 +90,17 @@ class IntroDBOpenDataAdapter:
                     }
                     valid = {"segments", "segmentless"}.issubset(tables)
                     if valid and deep:
-                        check = connection.execute("PRAGMA quick_check(1)").fetchone()
-                        valid = bool(check and check[0] == "ok")
+                        with self._active_db_lock:
+                            self._active_db = connection
+                        try:
+                            if self._cancel_event.is_set():
+                                raise http_client.DownloadCancelled()
+                            check = connection.execute("PRAGMA quick_check(1)").fetchone()
+                            valid = bool(check and check[0] == "ok")
+                        finally:
+                            with self._active_db_lock:
+                                if self._active_db is connection:
+                                    self._active_db = None
                 except sqlite3.Error:
                     valid = False
                 finally:
@@ -270,6 +288,8 @@ class IntroDBOpenDataAdapter:
     def _build_database(self, path, payload_paths):
         """Build a verified SQLite index from streamed, checksum-verified CSV files."""
         connection = sqlite3.connect(path)
+        with self._active_db_lock:
+            self._active_db = connection
         try:
             # The temporary database is disposable. The previous verified index
             # remains untouched until this replacement passes its integrity check.
@@ -467,6 +487,9 @@ class IntroDBOpenDataAdapter:
                 "info",
             )
         finally:
+            with self._active_db_lock:
+                if self._active_db is connection:
+                    self._active_db = None
             connection.close()
 
     def get_episode_data(self, imdb, season=0, episode=0, is_movie=False):
