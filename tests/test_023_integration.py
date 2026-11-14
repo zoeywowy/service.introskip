@@ -95,7 +95,7 @@ xbmcaddon=types.ModuleType('xbmcaddon');xbmcaddon.Addon=Addon
 for k,mod in [('xbmc',xbmc),('xbmcgui',xbmcgui),('xbmcvfs',xbmcvfs),('xbmcaddon',xbmcaddon)]:
     sys.modules[k]=mod
 
-from resources.lib import tools,button_assets,color,cinemeta,theintrodb,http_client
+from resources.lib import tools,button_assets,color,cinemeta,theintrodb,http_client,segment_policy
 from resources.lib.introdb_open_data import IntroDBOpenDataAdapter
 from resources.lib.player import Player
 from resources.lib.skip_dialog import IntroSkipDialog
@@ -202,6 +202,32 @@ class ServiceLifecycleTests(unittest.TestCase):
             cinemeta.lookup_imdb = original
             player.shutdown()
 
+    def test_open_data_sync_worker_is_joined_on_shutdown(self):
+        player = Player()
+        adapter = player.identifier.introdb_open_data
+        entered = threading.Event()
+        def sync_until_cancelled():
+            entered.set()
+            adapter._cancel_event.wait(2.0)
+        adapter.sync_if_needed = sync_until_cancelled
+        worker = adapter.start_background_sync()
+        self.assertTrue(entered.wait(1))
+        player.shutdown()
+        self.assertFalse(worker.is_alive())
+
+    def test_open_data_adapter_is_shared_across_threads(self):
+        player = Player()
+        found = []
+        threads = [threading.Thread(target=lambda: found.append(player.identifier.introdb_open_data))
+                   for _ in range(12)]
+        for worker in threads:
+            worker.start()
+        for worker in threads:
+            worker.join(timeout=1)
+        self.assertEqual(len(found), 12)
+        self.assertTrue(all(adapter is found[0] for adapter in found))
+        player.shutdown()
+
 
 class HTTPClientTests(unittest.TestCase):
     def test_json_query_uses_standard_library_and_encodes_parameters(self):
@@ -247,6 +273,18 @@ class HTTPClientTests(unittest.TestCase):
         self.assertEqual(payload, b"first-second")
         self.assertEqual(size, len(payload))
         self.assertEqual(digest, hashlib.sha256(payload).hexdigest())
+
+    def test_introdb_live_http_failure_is_handled_without_requests_dependency(self):
+        player = Player()
+        original = http_client.get_json
+        try:
+            def offline(*args, **kwargs):
+                raise http_client.HTTPTransportError('offline')
+            http_client.get_json = offline
+            self.assertIsNone(player.identifier.introdb_adapter.get_episode_data('tt7631058',1,3))
+        finally:
+            http_client.get_json = original
+            player.shutdown()
 
     def test_cancelled_download_removes_partial_file(self):
         event = threading.Event()
@@ -641,6 +679,58 @@ class MultiSourceTests(unittest.TestCase):
         self.assertEqual(calls.count('https://data.introdb.app/latest/manifest.json'), 3)
         self.assertEqual(calls.count('https://data.introdb.app/latest/segments.csv.gz'), 2)
         self.assertEqual(calls.count('https://data.introdb.app/latest/segmentless.csv.gz'), 2)
+
+    def test_preview_theintrodb_multiple_ranges_are_confirmation_only(self):
+        settings_values['general.use_preview'] = True
+        player = Player()
+        data = {'preview':[
+            {'start_ms': 120000, 'end_ms': 160000, 'confidence': 0.9},
+            {'start_ms': 250000, 'end_ms': 280000, 'confidence': 0.9},
+        ]}
+        try:
+            found = player._apply_theintrodb_data('episode', data, 360000, 360)
+            self.assertIn('preview', found)
+            self.assertEqual(player.get_segments()['preview'],
+                             [(120.0, 160.0), (250.0, 280.0)])
+            evidence = player.evidence_for('preview',(120.0,160.0))
+            self.assertEqual(evidence['source'], 'theintrodb')
+            self.assertFalse(segment_policy.can_auto_skip('auto', evidence['source']))
+        finally:
+            player.shutdown()
+
+    def test_preview_native_chapters_respect_toggle(self):
+        player = Player()
+        adapter = player.identifier.chapter_adapter
+        calls = []
+        adapter.last_match_kind = 'chapter_explicit'
+        adapter.get_points = lambda *args: (calls.append(args[-1]) or
+                                            ([(210.0, 240.0)] if args[-1] == 'preview' else None))
+        try:
+            settings_values['general.use_preview'] = True
+            player._read_local_chapters('episode', '', 1, 3)
+            self.assertEqual(player.get_segments()['preview'], [(210.0, 240.0)])
+            player.reset_segment('preview')
+            calls.clear()
+            settings_values['general.use_preview'] = False
+            player._read_local_chapters('episode', '', 1, 3)
+            self.assertNotIn('preview', calls)
+            self.assertEqual(player.get_segments()['preview'], [])
+        finally:
+            player.shutdown()
+
+    def test_delayed_preview_chapter_refresh(self):
+        settings_values['general.use_preview'] = True
+        player = Player()
+        adapter = player.identifier.chapter_adapter
+        adapter._get_chapters_multiple_methods = lambda force=False: [{'title':'Next Episode Preview'}]
+        adapter.get_points = lambda *args: ([(275.0,310.0)] if args[-1]=='preview' else None)
+        adapter.last_match_kind = 'chapter_explicit'
+        player._media_type = 'episode'
+        try:
+            self.assertTrue(player.refresh_chapter_segments(force=True))
+            self.assertEqual(player.get_segments()['preview'], [(275.0, 310.0)])
+        finally:
+            player.shutdown()
 
     def test_preview_provider_maps_to_preview_segment(self):
         settings_values['general.use_preview'] = True
