@@ -14,7 +14,7 @@ from resources.lib import tools
 from resources.lib.adapter import PointsAdapter
 
 
-CATEGORIES = ('intro', 'recap', 'outro', 'movie_outro', 'post_credits')
+CATEGORIES = ('intro', 'recap', 'preview', 'outro', 'movie_outro', 'post_credits')
 INTRO = ('intro', 'opening', 'main title', 'main titles', 'title sequence',
          'opening title', 'opening credits', 'opening theme', 'theme song',
          'opening sequence', 'ouverture', 'apertura', '开场', '오프닝')
@@ -26,6 +26,8 @@ CREDITS = ('end credits', 'closing credits', 'credits roll', 'credits',
            'closing theme', 'end theme', 'outro', 'générique de fin')
 POST = ('post-credit', 'post credit', 'after-credit', 'after credit',
         'mid-credit', 'mid credit', 'stinger', 'bonus scene')
+PREVIEW = ('preview', 'next episode', 'next time on', 'on the next',
+           'coming up', 'coming next', 'up next', 'sneak peek', 'trailer')
 
 
 def _generic(title):
@@ -186,6 +188,9 @@ class ChaptersAdapter(PointsAdapter):
             elif segment_type == 'recap':
                 if _matched(title, RECAP):
                     return c
+            elif segment_type == 'preview':
+                if _matched(title, PREVIEW) and not _matched(title, INTRO + RECAP + CREDITS + POST):
+                    return c
             elif segment_type == 'post_credits':
                 if _matched(title, POST):
                     return c
@@ -221,6 +226,33 @@ class ChaptersAdapter(PointsAdapter):
         chapters = self._get_chapters_multiple_methods()
         if not chapters:
             return None
+        if type == 'preview':
+            # Explicit named previews only. Keep multiple disjoint intervals,
+            # never interpret generic chapters or lengthy episodes as previews.
+            ranges = []
+            try:
+                total = float(self.player.getTotalTime() or 0)
+            except (ValueError, TypeError, RuntimeError, OverflowError):
+                total = 0.0
+            for chapter in chapters:
+                title = str(chapter.get('title') or '').strip()
+                if (_generic(title) or not _matched(title, PREVIEW)
+                        or _matched(title, INTRO + RECAP + CREDITS + POST)):
+                    continue
+                start = float(chapter['start'])
+                end = float(chapter['end'])
+                if (not math.isfinite(start) or not math.isfinite(end)
+                        or start < 0 or end - start < 5 or end - start > 300
+                        or (total > 0 and start >= total)):
+                    continue
+                if total > 0:
+                    end = min(end, total)
+                if end > start:
+                    ranges.append((start, end))
+            if ranges:
+                self.last_match_kind = 'chapter_explicit'
+                tools.log('Kodi preview chapters matched: {}'.format(ranges), 'info')
+            return ranges or None
         if type == 'intro':
             chapter, method = self._find_intro_chapter(chapters)
         else:
