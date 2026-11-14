@@ -1,5 +1,17 @@
 # IntroSkip release notes
 
+## 0.0.31 — Native preview detection and background worker lifecycle
+
+**13 November 2026 · Kodi 22 pre-release**
+
+- Recognize explicitly named Kodi 22 preview/next-episode chapters and retain multiple distinct preview intervals; reject ambiguous or excessively long candidates.
+- Honor the existing Preview detection toggle in initial and delayed chapter checks; preserve Ask-only behavior for TheIntroDB and chapter matches.
+- Fix a stale Requests exception reference in the standard-library IntroDB HTTP fallback.
+- Synchronize lazy IntroDB adapter initialization and cancel/join the independent open-data worker during shutdown using a shared bounded wait.
+- Add tests for native and community previews, HTTP failures, adapter reuse and thread termination; improve shutdown logging.
+- Real-device Kodi in-place updates and uninstallations still require manual verification.
+
+
 ## 0.0.30 — Kodi update and uninstall lifecycle
 
 **13 November 2026 · Kodi 22 pre-release**
