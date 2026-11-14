@@ -20,11 +20,11 @@ When a title is playing, its IMDb ID and episode coordinates are looked up local
 
 IntroSkip also queries TheIntroDB v4 with the IMDb ID, episode coordinates and actual playback duration. The API prefers TVDB identity but supports IMDb as a fallback. Duration matching helps select the closest release version.
 
-The adapter preserves multiple valid intro, recap, credits and preview intervals. Responses are cached locally for seven days. A failure or missing record from this source does not stop the other detectors.
+The adapter preserves multiple valid intro, recap, credits and preview intervals. Enable **Previews** in Detection to use them. IntroDB does not publish preview timestamps; TheIntroDB does. Responses are cached locally for seven days. A failure or missing record from this source does not stop the other detectors.
 
 ## 4. Kodi 22 chapters: local file information
 
-Kodi's `Player.GetChapters` API exposes chapter indexes, names and start positions in seconds. IntroSkip recognizes clear labels such as opening credits, recap and end credits. Adjacent named opening chapters can be combined when safe.
+Kodi's `Player.GetChapters` API exposes chapter indexes, names and start positions in seconds. IntroSkip recognizes clear labels such as opening credits, recap, end credits and next-episode previews. It retains multiple named preview chapters but does not guess previews from generic chapter timing. Adjacent named opening chapters can be combined when safe.
 
 Chapter information depends on the actual file, container and player. Some streams expose no chapters.
 

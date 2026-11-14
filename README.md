@@ -4,7 +4,7 @@
 
 IntroSkip is a lightweight Kodi background service. It combines community timestamps with Kodi's native chapter information and presents a customizable skip button when a reliable segment is found.
 
-**Current build:** 0.0.30 · Kodi 22 pre-release
+**Current build:** 0.0.31 · Kodi 22 pre-release
 
 ## Install
 
@@ -26,7 +26,7 @@ IntroSkip uses three independent sources:
 
 - **IntroDB:** a daily open-data snapshot indexed locally with SQLite, plus a single-item API fallback.
 - **TheIntroDB v4:** a second community source. Playback duration helps select the closest release version; multiple intervals and previews are supported.
-- **Kodi 22 chapters:** reads chapter names and boundaries exposed by the playing file. Explicit chapter labels take priority over community timestamps.
+- **Kodi 22 chapters:** reads chapter names and boundaries exposed by the playing file, including explicitly named previews. Explicit chapter labels take priority over community timestamps.
 
 **Cinemeta** resolves the playing title to an IMDb ID without an API key. Network lookups run in the background and never hold up playback.
 
@@ -42,7 +42,7 @@ IntroSkip validates segment boundaries and avoids guessing when a title or times
 | Skip behavior | Ask or Auto for each enabled segment |
 | Button appearance | Light/Dark theme, color, position, size, style and content |
 
-Defaults: intro detection is on; other segment types are off. All actions default to **Ask**. Auto-skip is deliberately conservative: only qualifying IntroDB data is eligible; TheIntroDB and chapter-based matches remain confirmation-only.
+Defaults: intro detection is on; other segment types, including previews, are off. Enable **Previews** to detect TheIntroDB preview timestamps or explicitly named Kodi chapters. All actions default to **Ask**. Auto-skip is deliberately conservative: only qualifying IntroDB data is eligible; TheIntroDB and chapter-based matches remain confirmation-only.
 
 [Settings guide](docs/SETTINGS.md)
 

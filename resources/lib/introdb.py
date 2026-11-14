@@ -136,7 +136,7 @@ class IntroDBAdapter(PointsAdapter):
         }
         try:
             data = http_client.get_json(self.BASE_URL, params=params, timeout=self.timeout)
-        except requests.exceptions.RequestException as exc:
+        except http_client.HTTPError as exc:
             tools.log("IntroDB request failed: {}".format(exc), "warning")
             return None
         except (ValueError, TypeError) as exc:

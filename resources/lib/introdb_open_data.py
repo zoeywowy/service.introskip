@@ -34,6 +34,7 @@ class IntroDBOpenDataAdapter:
         self.manifest_path = os.path.join(self.data_dir, "manifest.json")
         self.timeout = timeout
         self._sync_lock = threading.Lock()
+        self._sync_thread_lock = threading.Lock()
         self._sync_thread = None
         self._db_validation_lock = threading.Lock()
         self._db_validated = False
@@ -43,22 +44,30 @@ class IntroDBOpenDataAdapter:
         self._active_db = None
 
     def start_background_sync(self):
-        """Start a cancellable background refresh when Kodi is idle."""
-        if self._cancel_event.is_set():
-            return None
-        if self._sync_thread is not None and self._sync_thread.is_alive():
-            return self._sync_thread
-        self._sync_thread = threading.Thread(
-            target=self.sync_if_needed,
-            name="IntroSkip-IntroDB-OpenData",
-            daemon=True,
-        )
-        self._sync_thread.start()
-        return self._sync_thread
+        """Start a cancellable refresh, retaining its handle for shutdown."""
+        with self._sync_thread_lock:
+            if self._cancel_event.is_set():
+                return None
+            if self._sync_thread is not None and self._sync_thread.is_alive():
+                return self._sync_thread
+            worker = threading.Thread(
+                target=self.sync_if_needed,
+                name="IntroSkip-IntroDB-OpenData",
+                daemon=True,
+            )
+            self._sync_thread = worker
+            try:
+                worker.start()
+            except Exception:
+                self._sync_thread = None
+                raise
+            return worker
 
     def cancel_sync(self):
-        """Cancel network work and interrupt a long SQLite index operation."""
+        """Signal cancellation, interrupt SQLite and return the sync thread."""
         self._cancel_event.set()
+        with self._sync_thread_lock:
+            worker = self._sync_thread
         with self._active_db_lock:
             connection = self._active_db
         if connection is not None:
@@ -66,6 +75,7 @@ class IntroDBOpenDataAdapter:
                 connection.interrupt()
             except sqlite3.Error:
                 pass
+        return worker
 
     @property
     def is_ready(self):

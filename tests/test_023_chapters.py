@@ -55,6 +55,32 @@ class NativeChapterTests(unittest.TestCase):
     def test_outro_excludes_postcredit(self):self.assertEqual(self.adapter.get_points('',1,1,'outro'),[(2000.0,2200.0)])
     def test_movie_credit(self):self.assertEqual(self.adapter.get_points('',1,1,'movie_outro'),[(2000.0,2200.0)])
     def test_postcredit(self):self.assertEqual(self.adapter.get_points('',1,1,'post_credits'),[(2200.0,3600.0)])
+    def test_explicit_preview(self):
+        self.payload=[{'index':1,'time':0,'name':'Story'},
+                      {'index':2,'time':1800,'name':'Next Episode Preview'},
+                      {'index':3,'time':1880,'name':'Credits'}]
+        self.assertEqual(self.adapter.get_points('',1,1,'preview'),[(1800.0,1880.0)])
+        self.assertEqual(self.adapter.last_match_kind,'chapter_explicit')
+    def test_multiple_named_previews(self):
+        self.payload=[{'index':1,'time':0,'name':'Story'},
+                      {'index':2,'time':1500,'name':'Sneak Peek'},
+                      {'index':3,'time':1550,'name':'Story Continues'},
+                      {'index':4,'time':2000,'name':'Next time on'},
+                      {'index':5,'time':2080,'name':'End Credits'}]
+        self.assertEqual(self.adapter.get_points('',1,1,'preview'),
+                         [(1500.0,1550.0),(2000.0,2080.0)])
+    def test_generic_or_recap_chapters_are_not_previews(self):
+        self.payload=[{'index':1,'time':0,'name':'Chapter 1'},
+                      {'index':2,'time':100,'name':'Previously on'},
+                      {'index':3,'time':180,'name':'Opening Credits'},
+                      {'index':4,'time':240,'name':'Scene 4'},
+                      {'index':5,'time':2100,'name':'Credits'}]
+        self.assertIsNone(self.adapter.get_points('',1,1,'preview'))
+    def test_long_next_episode_is_not_skipped(self):
+        self.payload=[{'index':1,'time':0,'name':'Story'},
+                      {'index':2,'time':600,'name':'Next Episode'},
+                      {'index':3,'time':1400,'name':'Credits'}]
+        self.assertIsNone(self.adapter.get_points('',1,1,'preview'))
     def test_no_chapter_inspector(self):
         self.assertFalse(hasattr(self.adapter, 'report'))
     def test_unnamed_untrusted_outro(self):

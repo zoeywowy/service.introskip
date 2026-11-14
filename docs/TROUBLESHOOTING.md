@@ -18,9 +18,17 @@ Try another release of the title. If reporting a mismatch, include the title, se
 
 ## IntroDB data is not available
 
-IntroSkip keeps the last valid local database if a download fails. At startup it checks the daily manifest and refreshes the snapshot only when it changes.
+IntroSkip keeps the last valid local database if a download fails. It defers checking the daily manifest until Kodi has been idle without playback or user input for two minutes, then refreshes the snapshot only when it changes.
 
 A missing local record can trigger the single-item IntroDB API fallback. Network failures do not disable Kodi chapter detection or TheIntroDB.
+
+## Preview segments are not detected
+
+Under **Detection**, enable **Previews** (off by default). Previews require either a TheIntroDB v4 timestamp or an explicitly named native chapter such as "Next Episode Preview". IntroDB does not publish previews. TheIntroDB and chapter-based previews use the confirmation button even if Auto is selected. Generic chapters are not treated as previews.
+
+## Kodi freezes on in-place updates or uninstalling
+
+If Kodi becomes unresponsive, restart Kodi instead of manually deleting installed add-on files. Record the Kodi version, IntroSkip version, whether playback was active, and whether Kodi had been idle long enough for a background IntroDB sync. Include log lines mentioning "Shutdown:" and "CPythonInvoker" in an issue, with private stream addresses removed. Automated tests do not prove every platform will unload a running service successfully.
 
 ## TheIntroDB data is missing
 
