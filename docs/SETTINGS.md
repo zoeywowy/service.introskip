@@ -10,7 +10,7 @@ Enable the segment types you want IntroSkip to find.
 | --- | --- |
 | Intros | On |
 | Recaps | Off |
-| Previews | Off |
+| Previews | Off — enable to use TheIntroDB and named Kodi chapter previews |
 | TV credits | Off |
 | Movie credits | Off |
 | Detection notifications | On |
