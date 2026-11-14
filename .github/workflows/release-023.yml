@@ -11,13 +11,15 @@ on:
       - "resources/**"
       - "tests/**"
       - "build_zip.py"
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: introskip-pre-release
+  group: introskip-pre-release-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -83,6 +85,7 @@ jobs:
           PY
 
       - name: Publish GitHub pre-release with installable ZIP
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
