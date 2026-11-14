@@ -496,7 +496,7 @@ class Player(xbmc.Player):
         return found
 
     def _read_local_chapters(self, media_type, imdb_id, season, episode):
-        kinds = ('movie_outro', 'post_credits') if media_type == 'movie' else ('intro', 'recap', 'outro')
+        kinds = ('movie_outro', 'post_credits', 'preview') if media_type == 'movie' else ('intro', 'recap', 'outro', 'preview')
         for kind in kinds:
             if kind == 'intro' and not settings.get_setting_boolean('general.use_intro'):
                 continue
@@ -504,10 +504,12 @@ class Player(xbmc.Player):
                 continue
             if kind == 'outro' and not settings.get_setting_boolean('general.use_outro'):
                 continue
+            if kind == 'preview' and not settings.get_setting_boolean('general.use_preview'):
+                continue
             try:
                 points = self.identifier.chapter_adapter.get_points(imdb_id, season, episode, kind)
                 if points:
-                    self._remember_segment(kind, points[0], {
+                    self._remember_segment_ranges(kind, points, {
                         'source': self.identifier.chapter_adapter.last_match_kind or 'chapter'})
             except Exception as exc:
                 tools.log('Kodi 22 {} chapter lookup failed: {}'.format(kind, exc), 'warning')
@@ -572,7 +574,7 @@ class Player(xbmc.Player):
         chapters = adapter._get_chapters_multiple_methods(force=force)
         if not chapters:
             return False
-        kinds = ('movie_outro', 'post_credits') if self._media_type == 'movie' else ('intro', 'recap', 'outro')
+        kinds = ('movie_outro', 'post_credits', 'preview') if self._media_type == 'movie' else ('intro', 'recap', 'outro', 'preview')
         updated = False
         for kind in kinds:
             if kind == 'intro' and not settings.get_setting_boolean('general.use_intro'):
@@ -581,9 +583,11 @@ class Player(xbmc.Player):
                 continue
             if kind == 'outro' and not settings.get_setting_boolean('general.use_outro'):
                 continue
+            if kind == 'preview' and not settings.get_setting_boolean('general.use_preview'):
+                continue
             try:
                 points = adapter.get_points('', 0, 0, kind)
-                if points and self._remember_segment(kind, points[0], {
+                if points and self._remember_segment_ranges(kind, points, {
                     'source': adapter.last_match_kind or 'chapter'}):
                     tools.log('Delayed Kodi 22 chapter match for {}'.format(kind), 'info')
                     updated = True
@@ -592,38 +596,51 @@ class Player(xbmc.Player):
         return updated
 
     def shutdown(self):
-        """Release UI resources and cancel all background work without waiting."""
+        """Stop background work with one bounded deadline before Kodi unloads us."""
         self._shutdown_event.set()
+        tools.log('Shutdown: cancellation requested', 'info')
+        sync_worker = None
         try:
-            self.identifier.cancel_background_work()
-        except Exception:
-            pass
+            sync_worker = self.identifier.cancel_background_work()
+        except Exception as exc:
+            tools.log('Shutdown: sync cancellation error ({})'.format(type(exc).__name__), 'warning')
         with self._state_lock:
             self._network_results.clear()
             self._requested_keys.clear()
             self._pending_notification = None
             workers = list(self._workers)
-        # Kodi waits for *all* Python thread states (even daemon threads) when
-        # reloading a service add-on. Allow the interrupted three-second HTTP
-        # request to exit, but never block the GUI's five-second deadline.
-        deadline = time.monotonic() + 2.75
+        # Kodi can wait for daemon thread states too. Leave spare time below
+        # Kodi's five-second Python shutdown limit for native cleanup.
+        if sync_worker is not None:
+            workers.insert(0, sync_worker)
+        deadline = time.monotonic() + 3.25
         for worker in workers:
             if worker is threading.current_thread():
                 continue
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
-                break
-            worker.join(timeout=remaining)
+            try:
+                if not worker.is_alive():
+                    continue
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    tools.log('Shutdown: worker budget exhausted', 'warning')
+                    break
+                worker.join(timeout=remaining)
+                if worker.is_alive():
+                    tools.log('Shutdown: {} still running'.format(worker.name), 'warning')
+                else:
+                    tools.log('Shutdown: {} stopped'.format(worker.name), 'debug')
+            except RuntimeError as exc:
+                tools.log('Shutdown: worker join error ({})'.format(exc), 'warning')
+
         dialog = self.dialog
         self.dialog = None
         if dialog is not None:
             try:
                 dialog.close()
-            except Exception:
-                pass
-            # WindowXMLDialog -> Player and Player -> WindowXMLDialog form a
-            # cycle across native Kodi/Python objects. Break it on shutdown.
+            except Exception as exc:
+                tools.log('Shutdown: dialog close error ({})'.format(exc), 'warning')
             dialog.player = None
+        tools.log('Shutdown: UI resources released', 'info')
 
     def onPlayBackStopped(self):
         tools.log("onPlaybackStopped", "debug")
