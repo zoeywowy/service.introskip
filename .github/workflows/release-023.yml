@@ -60,6 +60,9 @@ jobs:
       - name: Test Kodi 22 native chapter detection
         run: python -m unittest discover -s tests -p 'test_023_chapters.py' -v
 
+      - name: Test reproducible Kodi package build
+        run: python -m unittest discover -s tests -p 'test_build_zip.py' -v
+
       - name: Build and verify the Kodi-installable ZIP
         run: |
           python build_zip.py
