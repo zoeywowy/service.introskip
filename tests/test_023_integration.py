@@ -99,7 +99,11 @@ xbmcaddon=types.ModuleType('xbmcaddon');xbmcaddon.Addon=Addon
 for k,mod in [('xbmc',xbmc),('xbmcgui',xbmcgui),('xbmcvfs',xbmcvfs),('xbmcaddon',xbmcaddon)]:
     sys.modules[k]=mod
 
-from resources.lib import tools,button_assets,color,cinemeta,theintrodb,http_client,segment_policy
+from resources.lib import settings,service,tools,button_assets,color,cinemeta,theintrodb,http_client,segment_policy
+# test_023_chapters installs its own Kodi API fakes before this module loads.
+# Clear its cached Addon instance so these tests use this module's fake class.
+settings.xbmcaddon = xbmcaddon
+settings.release_cached_addon()
 from resources.lib.introdb_open_data import IntroDBOpenDataAdapter
 from resources.lib.player import Player
 from resources.lib.skip_dialog import IntroSkipDialog
@@ -169,6 +173,21 @@ class DialogLifecycleTests(unittest.TestCase):
 
 
 class ServiceLifecycleTests(unittest.TestCase):
+    def test_service_shutdown_releases_cached_kodi_addon(self):
+        original_monitor = service.KodiNativeMonitor
+
+        class StoppedMonitor:
+            def abortRequested(self):
+                return True
+
+        service.KodiNativeMonitor = StoppedMonitor
+        settings._DEFAULT_ADDON = Addon()
+        try:
+            service.run()
+        finally:
+            service.KodiNativeMonitor = original_monitor
+        self.assertIsNone(settings._DEFAULT_ADDON)
+
     def test_idle_service_does_not_construct_native_skip_window(self):
         player = Player()
         self.assertIsNone(player.dialog)
