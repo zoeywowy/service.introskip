@@ -1,6 +1,6 @@
 """Build a minimal Kodi-installable ZIP (run: python build_zip.py)."""
 from pathlib import Path
-from zipfile import ZIP_DEFLATED, ZipFile
+from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 import xml.etree.ElementTree as ET
 
 
@@ -39,7 +39,12 @@ OUTPUT.parent.mkdir(parents=True, exist_ok=True)
 
 with ZipFile(OUTPUT, "w", ZIP_DEFLATED, compresslevel=9) as archive:
     for path in FILES:
-        archive.write(path, arcname=str(Path(ADDON_ID) / path.relative_to(ROOT)))
+        member = str(Path(ADDON_ID) / path.relative_to(ROOT))
+        info = ZipInfo(member, date_time=(1980, 1, 1, 0, 0, 0))
+        info.compress_type = ZIP_DEFLATED
+        info.create_system = 3
+        info.external_attr = 0o100644 << 16
+        archive.writestr(info, path.read_bytes(), compress_type=ZIP_DEFLATED, compresslevel=9)
 
 with ZipFile(OUTPUT) as archive:
     bad_file = archive.testzip()
