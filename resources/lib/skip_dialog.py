@@ -50,6 +50,14 @@ class IntroSkipDialog(xbmcgui.WindowXMLDialog):
             self._is_open = False
             raise
 
+    def doModal(self):
+        """Track modal previews so Back and the preview button can close them."""
+        self._is_open = True
+        try:
+            return super().doModal()
+        finally:
+            self._is_open = False
+
     def close(self):
         """Close only a dialog that IntroSkip actually opened."""
         if not self._is_open:
