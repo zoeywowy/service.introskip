@@ -65,13 +65,17 @@ class Control:
 class WindowXMLDialog:
     def __init__(self,*args,**kwargs):
         self.controls=[];self.properties={};self.focus=None
-        self.show_count=0;self.close_count=0
+        self.show_count=0;self.modal_count=0;self.close_count=0
     def addControl(self,c):self.controls.append(c)
     def removeControl(self,c):self.controls.remove(c)
     def setFocus(self,c):self.focus=c
     def setProperty(self,k,v):self.properties[k]=v
     def getProperty(self,k):return self.properties.get(k,'')
     def show(self):self.show_count+=1
+    def doModal(self):
+        self.modal_count+=1
+        callback=getattr(self,'modal_callback',None)
+        if callback:callback(self)
     def close(self):self.close_count+=1
 
 xbmc=types.ModuleType('xbmc')
@@ -144,6 +148,24 @@ class DialogLifecycleTests(unittest.TestCase):
         self.assertEqual(dialog.close_count, 1)
         dialog.close()
         self.assertEqual(dialog.close_count, 1)
+
+    def test_modal_preview_closes_on_back(self):
+        dialog = IntroSkipDialog("intro_skip_dialog.xml", str(BASE))
+        dialog.preview_mode = True
+        dialog.modal_callback = lambda instance: instance.onAction(92)
+        dialog.doModal()
+        self.assertEqual(dialog.modal_count, 1)
+        self.assertEqual(dialog.close_count, 1)
+        self.assertFalse(dialog._is_open)
+
+    def test_modal_preview_closes_on_button_click(self):
+        dialog = IntroSkipDialog("intro_skip_dialog.xml", str(BASE))
+        dialog.preview_mode = True
+        dialog.modal_callback = lambda instance: instance.onClick(201)
+        dialog.doModal()
+        self.assertEqual(dialog.modal_count, 1)
+        self.assertEqual(dialog.close_count, 1)
+        self.assertFalse(dialog._is_open)
 
 
 class ServiceLifecycleTests(unittest.TestCase):

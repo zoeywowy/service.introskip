@@ -1,5 +1,13 @@
 # IntroSkip release notes
 
+## 0.0.32 — Preview button interaction fix
+
+**14 November 2026 · Kodi 22 pre-release**
+
+- Track Kodi's modal dialog lifecycle so the preview button can close the preview dialog by mouse click or Back.
+- Keep the guard that prevents closing a dialog that was never opened.
+- Real-device update and uninstall checks remain pending.
+
 ## 0.0.31 — Native preview detection and background worker lifecycle
 
 **13 November 2026 · Kodi 22 pre-release**
