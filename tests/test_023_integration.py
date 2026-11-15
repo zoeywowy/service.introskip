@@ -95,7 +95,7 @@ xbmcaddon=types.ModuleType('xbmcaddon');xbmcaddon.Addon=Addon
 for k,mod in [('xbmc',xbmc),('xbmcgui',xbmcgui),('xbmcvfs',xbmcvfs),('xbmcaddon',xbmcaddon)]:
     sys.modules[k]=mod
 
-from resources.lib import tools,button_assets,color,cinemeta,theintrodb,http_client,segment_policy
+from resources.lib import tools,button_assets,color,cinemeta,theintrodb,http_client,segment_policy,service
 from resources.lib.introdb_open_data import IntroDBOpenDataAdapter
 from resources.lib.player import Player
 from resources.lib.skip_dialog import IntroSkipDialog
@@ -715,6 +715,126 @@ class MultiSourceTests(unittest.TestCase):
             player._read_local_chapters('episode', '', 1, 3)
             self.assertNotIn('preview', calls)
             self.assertEqual(player.get_segments()['preview'], [])
+        finally:
+            player.shutdown()
+
+    def test_named_kodi_preview_chapters_reach_playback_segments(self):
+        settings_values['general.use_preview'] = True
+        player = Player()
+        chapters = [
+            {'index': 1, 'time': 0, 'name': 'Story'},
+            {'index': 2, 'time': 1800, 'name': 'Next Episode Preview'},
+            {'index': 3, 'time': 1830, 'name': 'Story Continues'},
+            {'index': 4, 'time': 2000, 'name': 'Sneak Peek'},
+            {'index': 5, 'time': 2030, 'name': 'End Credits'},
+        ]
+        old_execute = tools.execute_jsonrpc
+
+        def kodi_jsonrpc(method, params=None):
+            if method == 'Player.GetActivePlayers':
+                return [{'type': 'video', 'playerid': 1}]
+            if method == 'Player.GetChapters':
+                self.assertEqual(params, {'playerid': 1})
+                return {'chapters': chapters}
+            self.fail('Unexpected Kodi JSON-RPC method: {}'.format(method))
+
+        tools.execute_jsonrpc = kodi_jsonrpc
+        player._launch_introdb = lambda *args, **kwargs: None
+        try:
+            player.onAVStarted()
+            self.assertEqual(player.get_segments()['preview'],
+                             [(1800.0, 1830.0), (2000.0, 2030.0)])
+            evidence = player.evidence_for('preview', (1800.0, 1830.0))
+            self.assertEqual(evidence['source'], 'chapter_explicit')
+            self.assertFalse(segment_policy.can_auto_skip('auto', evidence['source']))
+        finally:
+            tools.execute_jsonrpc = old_execute
+            player.shutdown()
+
+    def test_named_kodi_preview_reaches_ask_prompt_during_playback(self):
+        settings_values['general.use_preview'] = True
+        settings_values['skip.preview_mode'] = '1'  # Auto still requires evidence that permits auto-skip.
+        player = Player()
+        player._launch_introdb = lambda *args, **kwargs: None
+        player.getTime = lambda: 1805.0
+        chapters = [
+            {'index': 1, 'time': 0, 'name': 'Story'},
+            {'index': 2, 'time': 1800, 'name': 'Next Episode Preview'},
+            {'index': 3, 'time': 1830, 'name': 'Story Continues'},
+        ]
+        old_execute = tools.execute_jsonrpc
+        old_player_factory = service.Player
+        old_monitor_factory = service.KodiNativeMonitor
+        had_window_query = hasattr(xbmcgui, 'getCurrentWindowDialogId')
+        old_window_query = getattr(xbmcgui, 'getCurrentWindowDialogId', None)
+        dialog_capture = []
+
+        def kodi_jsonrpc(method, params=None):
+            if method == 'Player.GetActivePlayers':
+                return [{'type': 'video', 'playerid': 1}]
+            if method == 'Player.GetChapters':
+                return {'chapters': chapters}
+            self.fail('Unexpected Kodi JSON-RPC method: {}'.format(method))
+
+        class SinglePlaybackMonitor:
+            def __init__(self):
+                self.waits = 0
+            def abortRequested(self):
+                return False
+            def waitForAbort(self, timeout):
+                self.waits += 1
+                return self.waits == 2
+            def take_changes(self):
+                return set()
+
+        old_get_dialog = player.get_dialog
+        def capture_dialog(create=False):
+            dialog = old_get_dialog(create=create)
+            if dialog is not None:
+                dialog_capture.append(dialog)
+            return dialog
+
+        player.get_dialog = capture_dialog
+        tools.execute_jsonrpc = kodi_jsonrpc
+        service.Player = lambda: player
+        service.KodiNativeMonitor = SinglePlaybackMonitor
+        xbmcgui.getCurrentWindowDialogId = lambda: 0
+        try:
+            player.onAVStarted()
+            service.run()
+            self.assertEqual(len(dialog_capture), 1)
+            dialog = dialog_capture[0]
+            self.assertEqual(dialog.properties['skip_type'], 'preview')
+            self.assertEqual(dialog.properties['skip_time'], '1830.0')
+            self.assertEqual(dialog.show_count, 1)
+            self.assertEqual(dialog.close_count, 1)  # Service shutdown closes the displayed prompt.
+        finally:
+            tools.execute_jsonrpc = old_execute
+            service.Player = old_player_factory
+            service.KodiNativeMonitor = old_monitor_factory
+            if had_window_query:
+                xbmcgui.getCurrentWindowDialogId = old_window_query
+            else:
+                del xbmcgui.getCurrentWindowDialogId
+            player.shutdown()
+
+    def test_theintrodb_preview_payload_reaches_segments_and_stays_ask_only(self):
+        settings_values['general.use_preview'] = True
+        player = Player()
+        # This uses the real TheIntroDB response normalizer and player adapter,
+        # including its documented open-ended preview boundary behavior.
+        data = {'preview': [
+            {'start_ms': 120000, 'end_ms': 160000, 'confidence': 0.9},
+            {'start_ms': 250000, 'end_ms': None, 'confidence': 0.9},
+        ]}
+        try:
+            self.assertEqual(player._apply_theintrodb_data(
+                'episode', data, 300000, 300), ['preview'])
+            self.assertEqual(player.get_segments()['preview'],
+                             [(120.0, 160.0), (250.0, 300.0)])
+            evidence = player.evidence_for('preview', (120.0, 160.0))
+            self.assertEqual(evidence['source'], 'theintrodb')
+            self.assertFalse(segment_policy.can_auto_skip('auto', evidence['source']))
         finally:
             player.shutdown()
 
