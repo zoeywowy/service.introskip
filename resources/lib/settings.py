@@ -18,6 +18,12 @@ def _get_addon(addon=None):
     return _DEFAULT_ADDON
 
 
+def release_cached_addon():
+    """Drop the service's cached Kodi Addon wrapper during shutdown."""
+    global _DEFAULT_ADDON
+    _DEFAULT_ADDON = None
+
+
 def get_localized_string(_id, addon=None):
     return _get_addon(addon).getLocalizedString(_id)
 

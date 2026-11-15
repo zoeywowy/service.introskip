@@ -280,5 +280,11 @@ def run():
     
     finally:
         tools.log('Service cleanup starting', 'info')
-        player.shutdown()
-        tools.log('Service cleanup finished', 'info')
+        try:
+            player.shutdown()
+        finally:
+            # Release Kodi's native Addon wrapper before CPython unloads this
+            # service. Kodi warned that this object remained alive during the
+            # failed Windows in-place update.
+            settings.release_cached_addon()
+            tools.log('Service cleanup finished', 'info')

@@ -1,5 +1,13 @@
 # IntroSkip release notes
 
+## 0.0.33 — Shutdown reference cleanup (local test build)
+
+**14 November 2026 · Not published**
+
+- Explicitly release the cached Kodi `Addon` wrapper after service shutdown cleanup to address the retained native wrapper warning seen during the Windows update attempt.
+- Correct the integration-test Kodi mock setup so test modules do not reuse each other's cached `Addon` wrapper.
+- Automated tests pass; Windows in-place update behavior still needs your real-device verification.
+
 ## 0.0.32 — Preview button interaction fix
 
 **14 November 2026 · Kodi 22 pre-release**
